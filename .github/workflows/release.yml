@@ -1,0 +1,74 @@
+name: Release
+
+# Builds Mac (.dmg + .zip) and Windows (.exe + .nupkg) installers on tag push
+# and attaches them to a GitHub Release. Non-developers can download from
+# https://github.com/<owner>/<repo>/releases/latest without ever touching git.
+#
+# Trigger by pushing a tag matching v* (e.g. `git push origin v0.1.0-alpha`),
+# or manually from the Actions tab via the Run workflow button.
+
+on:
+  push:
+    tags:
+      - "v*"
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    name: Build (${{ matrix.os }})
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [macos-latest, windows-latest]
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: "npm"
+          cache-dependency-path: app/package-lock.json
+
+      - name: Install dependencies
+        working-directory: app
+        run: npm ci
+
+      - name: Build (electron-forge make)
+        working-directory: app
+        run: npm run make
+
+      - name: Upload built distributables
+        uses: actions/upload-artifact@v4
+        with:
+          name: dist-${{ matrix.os }}
+          path: |
+            app/out/make/**/*.dmg
+            app/out/make/**/*.zip
+            app/out/make/**/*.exe
+            app/out/make/**/*.nupkg
+          if-no-files-found: error
+
+  release:
+    name: Publish GitHub Release
+    needs: build
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Download all build artifacts
+        uses: actions/download-artifact@v4
+        with:
+          path: artifacts
+
+      - name: Attach to release
+        uses: softprops/action-gh-release@v2
+        with:
+          files: artifacts/**/*
+          draft: false
+          prerelease: ${{ contains(github.ref_name, 'alpha') || contains(github.ref_name, 'beta') || contains(github.ref_name, 'rc') }}
+          generate_release_notes: true
