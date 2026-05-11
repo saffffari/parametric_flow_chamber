@@ -13,7 +13,7 @@ import { useRuntimeStore } from "@/state/runtime";
 import { DialSwitch } from "@/components/widgets/DialSwitch";
 import type { PortInfo } from "@/lib/interface";
 
-interface PortInfoLocal extends PortInfo {}
+type PortInfoLocal = PortInfo;
 
 export function SettingsDrawer({
   open,

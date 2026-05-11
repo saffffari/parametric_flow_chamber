@@ -57,7 +57,11 @@ jobs:
         uses: actions/setup-python@v5
         with:
           python-version: "3.12"
-          cache: "pip"
+          # No `cache: "pip"` — that requires a lockfile (requirements.txt,
+          # pyproject.toml, etc.) at a known path; firmware/ has only
+          # platformio.ini, so cache-key resolution fails fast. Re-enable
+          # with `cache-dependency-path: firmware/requirements.txt` once we
+          # actually pin Python deps.
 
       - name: Install PlatformIO
         run: |

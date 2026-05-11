@@ -31,7 +31,6 @@ const config: ForgeConfig = {
     afterCopy: [
       (buildPath, _electronVersion, _platform, _arch, callback) => {
         try {
-          // eslint-disable-next-line no-console
           console.log(`[afterCopy] Installing production deps in ${buildPath}`);
           execSync("npm install --omit=dev --no-package-lock --no-audit --no-fund", {
             cwd: buildPath,
