@@ -1,0 +1,115 @@
+@import "tailwindcss";
+
+/*
+ * Light-mode Korg Minilogue palette — placeholder pending Figma token pull.
+ *
+ * Layout intent: white window (85%), dark grey knobs (~12% lightness) with
+ * single-line indicator marks, restrained accent for active/critical state.
+ *
+ * Once the Figma file is connected (Dev Mode MCP enabled), replace these
+ * literal values with the variables pulled via get_variable_defs. See
+ * docs/design_language.md for principles.
+ */
+
+@theme {
+  /* ============================================================
+   * SURFACE FILL — LOCKED at #D9D9D9 (85% L light grey, updated 2026-05-10)
+   * ============================================================
+   * DO NOT CHANGE this value without explicit user approval.
+   * The whole window, every panel block, header, sidebar, status bar,
+   * and settings drawer share this fill — there is no tonal step
+   * between window and blocks. Block separation comes from hairline
+   * borders only.
+   *
+   * The earlier #F6F6F6 (96.5% L) was lifted on 2026-05-10 in favor
+   * of a slightly darker grey so light controls (knob caps at 95% L,
+   * #F2F2F2) read against the panel instead of melting into it.
+   *
+   * If you find yourself wanting to "vary the surface for contrast",
+   * use --color-surface-overlay (#ffffff, for input fields only) or
+   * a hairline border instead. Do not introduce a new surface tone.
+   * ============================================================ */
+  --color-surface: #cccccc;            /* LOCKED — main window + every block */
+  --color-surface-raised: #cccccc;     /* LOCKED — alias of surface; do not diverge */
+  --color-surface-overlay: #ffffff;    /* fields / inputs only — typing affordance */
+  --color-surface-recessed: #bfbfbf;   /* deeper wells (modal backdrops, recessed details) */
+
+  /* Foreground / text */
+  --color-foreground: #14140f;         /* near-black, warm */
+  --color-muted: #6c6c66;              /* secondary labels */
+  --color-muted-strong: #2a2a25;       /* primary labels */
+
+  /* Borders / hairlines */
+  --color-border: #d1cfca;
+  --color-border-strong: #a6a4a0;
+
+  /* Knob fills — 12% grey (dark, Minilogue-like) */
+  --color-knob: #1f1f1d;               /* main knob body */
+  --color-knob-edge: #0a0a09;          /* knob edge / shadow */
+  --color-knob-indicator: #fafaf8;     /* white indicator line on knob */
+  --color-knob-recess: #cdcbc6;        /* recessed area around knob */
+
+  /* Accent — Dieter Rams red (matches the DialSwitch pointer dot at #D73534).
+     Used for active state, live readouts, hint text, and any "live / critical
+     action" cue. Single accent across the whole app. */
+  --color-accent: #d73534;
+  --color-accent-bright: #e55554;
+  --color-accent-dim: #a52524;
+
+  /* Status (semantic) */
+  --color-status-running: var(--color-accent);
+  --color-status-idle: #94928e;
+  --color-status-fault: #c41a1a;
+  --color-status-ok: #2f8b3a;
+
+  /* Typography */
+  --font-sans: "Inter", system-ui, -apple-system, "Segoe UI", sans-serif;
+  --font-mono:
+    "JetBrains Mono", ui-monospace, SFMono-Regular, "SF Mono", Consolas,
+    "Liberation Mono", monospace;
+
+  /* Spacing — denser than default for instrument feel */
+  --spacing: 0.25rem;
+
+  /* Radii — minimal */
+  --radius-sm: 2px;
+  --radius-md: 4px;
+  --radius-lg: 6px;
+}
+
+@keyframes flowchamber-wheel-spin {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+@layer base {
+  html,
+  body {
+    height: 100%;
+    margin: 0;
+    background-color: var(--color-surface);
+    color: var(--color-foreground);
+    font-family: var(--font-sans);
+    font-size: 18px;
+    line-height: 1.4;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+  }
+
+  *,
+  *::before,
+  *::after {
+    box-sizing: border-box;
+  }
+
+  /* Numerical readouts — monospace by default */
+  [data-readout] {
+    font-family: var(--font-mono);
+    font-variant-numeric: tabular-nums;
+    letter-spacing: 0.02em;
+  }
+}

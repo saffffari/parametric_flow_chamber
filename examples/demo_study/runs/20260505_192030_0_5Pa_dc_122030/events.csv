@@ -1,0 +1,3 @@
+timestamp_us,event_type,detail
+1778008830805780,run_start,0.50 Pa steady, 600s
+1778008835041867,run_stop,manual stop from UI

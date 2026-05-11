@@ -1,0 +1,57 @@
+cff-version: 1.2.0
+message: "If you use this work, please cite it as below."
+title: "Parametric Flow Chamber"
+abstract: >
+  An open-source, parametric, parallel-plate perfusion flow chamber for
+  delivering programmable wall-shear-stress waveforms to MLO-Y4 osteocyte-like
+  cells on a Zeiss LSM 880 inverted multiphoton microscope. Includes hardware
+  CAD, Teensy 4.1 firmware, and an Electron operator app with synth-style
+  control surface. Designed as a paper companion: a first-time reader can
+  fabricate the chamber, flash the firmware, run the controller, and reproduce
+  paper figures from this single repository.
+type: software
+authors:
+  - family-names: "Saffari"
+    given-names: "Alexander"
+    orcid: "https://orcid.org/0009-0006-3773-902X"
+  - family-names: "Rocca"
+    given-names: "Ignacio"
+    # TODO: ORCID
+  - family-names: "Matthews"
+    given-names: "Melia"
+    # TODO: ORCID
+  - family-names: "Lewis"
+    given-names: "Karl"
+    # TODO: ORCID
+version: "0.1.0-alpha"
+date-released: "2026-05-10"
+license: MIT
+license-url: "https://opensource.org/licenses/MIT"
+repository-code: "TBD"
+keywords:
+  - flow chamber
+  - parallel-plate
+  - mechanotransduction
+  - osteocyte
+  - MLO-Y4
+  - shear stress
+  - bone biology
+  - open hardware
+  - Electron
+  - Teensy
+preferred-citation:
+  type: article
+  title: "TBD — paper title"
+  authors:
+    - family-names: "Saffari"
+      given-names: "Alexander"
+      orcid: "https://orcid.org/0009-0006-3773-902X"
+    - family-names: "Rocca"
+      given-names: "Ignacio"
+    - family-names: "Matthews"
+      given-names: "Melia"
+    - family-names: "Lewis"
+      given-names: "Karl"
+  journal: "TBD"
+  year: 2026
+  doi: "TBD"

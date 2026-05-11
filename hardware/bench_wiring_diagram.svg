@@ -1,0 +1,211 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1320 900" font-family="ui-monospace, Consolas, 'Courier New', monospace">
+  <!-- Background -->
+  <rect width="1320" height="900" fill="#fafafa"/>
+
+  <!-- Title -->
+  <text x="40" y="38" font-size="22" font-weight="bold" fill="#1a1a1a">Flow Chamber bench wiring — minimum demo</text>
+  <text x="40" y="60" font-size="13" fill="#555">BTT TMC2209 v1.3 · Teensy 4.1 · Kamoer KCS-SA · LRS-100-24 PSU</text>
+  <text x="40" y="78" font-size="11" fill="#888">All grounds tie at PSU V- (star ground). Bulk cap polarity: long leg = +, short leg = − stripe.</text>
+
+  <!-- ============================================== -->
+  <!-- POWER SECTION                                   -->
+  <!-- ============================================== -->
+  <text x="40" y="115" font-size="13" font-weight="bold" fill="#666" letter-spacing="2">POWER</text>
+
+  <!-- LRS PSU -->
+  <rect x="40" y="130" width="220" height="120" fill="#fff" stroke="#333" stroke-width="2"/>
+  <text x="150" y="155" text-anchor="middle" font-size="14" font-weight="bold">LRS-100-24</text>
+  <text x="150" y="172" text-anchor="middle" font-size="11" fill="#666">24V DC, 4.5A, 100W</text>
+  <text x="150" y="188" text-anchor="middle" font-size="10" fill="#888">AC mains in (L, N, ⏚)</text>
+  <!-- terminals -->
+  <rect x="55"  y="210" width="50" height="28" fill="#fce4e4" stroke="#aa2222"/>
+  <text x="80"  y="229" text-anchor="middle" font-size="12" font-weight="bold" fill="#aa2222">V+</text>
+  <rect x="115" y="210" width="50" height="28" fill="#e8e8e8" stroke="#222"/>
+  <text x="140" y="229" text-anchor="middle" font-size="12" font-weight="bold">V-</text>
+  <rect x="175" y="210" width="50" height="28" fill="#fff7d6" stroke="#888" stroke-dasharray="3,3"/>
+  <text x="200" y="229" text-anchor="middle" font-size="9" fill="#888">FG (open)</text>
+
+  <!-- Bulk capacitor -->
+  <rect x="320" y="160" width="100" height="80" fill="#fff" stroke="#333" stroke-width="2"/>
+  <text x="370" y="183" text-anchor="middle" font-size="14" font-weight="bold">100µF</text>
+  <text x="370" y="200" text-anchor="middle" font-size="11" fill="#666">35V electro</text>
+  <text x="370" y="218" text-anchor="middle" font-size="9" fill="#888">across VMOT/GND</text>
+  <text x="335" y="237" font-size="13" font-weight="bold" fill="#aa2222">+</text>
+  <text x="402" y="237" font-size="13" font-weight="bold" fill="#222">−</text>
+
+  <!-- ============================================== -->
+  <!-- DRIVER SECTION                                  -->
+  <!-- ============================================== -->
+  <text x="540" y="115" font-size="13" font-weight="bold" fill="#666" letter-spacing="2">DRIVER</text>
+
+  <!-- TMC2209 carrier -->
+  <rect x="540" y="130" width="240" height="430" fill="#fff" stroke="#333" stroke-width="2"/>
+  <text x="660" y="155" text-anchor="middle" font-size="14" font-weight="bold">TMC2209 v1.3</text>
+  <text x="660" y="172" text-anchor="middle" font-size="11" fill="#666">BTT BIGTREETECH</text>
+  <text x="660" y="188" text-anchor="middle" font-size="10" fill="#aa2222">Vref ≈ 1.0V (pot CW = reduce)</text>
+
+  <!-- LEFT PINS (logic side), top to bottom -->
+  <g font-size="11">
+    <rect x="540" y="220" width="24" height="22" fill="#fff" stroke="#444"/><text x="572" y="236">EN</text>
+    <rect x="540" y="252" width="24" height="22" fill="#fef9d6" stroke="#444"/><text x="572" y="268">MS1</text>
+    <rect x="540" y="284" width="24" height="22" fill="#fef9d6" stroke="#444"/><text x="572" y="300">MS2</text>
+    <rect x="540" y="316" width="24" height="22" fill="#f2f2f2" stroke="#bbb" stroke-dasharray="3,3"/><text x="572" y="332" fill="#999">TX  (open)</text>
+    <rect x="540" y="348" width="24" height="22" fill="#f2f2f2" stroke="#bbb" stroke-dasharray="3,3"/><text x="572" y="364" fill="#999">RX  (open)</text>
+    <rect x="540" y="380" width="24" height="22" fill="#f2f2f2" stroke="#bbb" stroke-dasharray="3,3"/><text x="572" y="396" fill="#999">CLK (open)</text>
+    <rect x="540" y="412" width="24" height="22" fill="#fff" stroke="#444"/><text x="572" y="428">STEP</text>
+    <rect x="540" y="444" width="24" height="22" fill="#fff" stroke="#444"/><text x="572" y="460">DIR</text>
+  </g>
+
+  <!-- RIGHT PINS (motor + power), top to bottom -->
+  <g font-size="11">
+    <rect x="756" y="220" width="24" height="22" fill="#fce4e4" stroke="#aa2222"/><text x="752" y="236" text-anchor="end" fill="#aa2222">VM</text>
+    <rect x="756" y="252" width="24" height="22" fill="#fff" stroke="#444"/><text x="752" y="268" text-anchor="end">GND</text>
+    <rect x="756" y="284" width="24" height="22" fill="#fff" stroke="#444"/><text x="752" y="300" text-anchor="end">A2</text>
+    <rect x="756" y="316" width="24" height="22" fill="#fff" stroke="#444"/><text x="752" y="332" text-anchor="end">A1</text>
+    <rect x="756" y="348" width="24" height="22" fill="#fff" stroke="#444"/><text x="752" y="364" text-anchor="end">B1</text>
+    <rect x="756" y="380" width="24" height="22" fill="#fff" stroke="#444"/><text x="752" y="396" text-anchor="end">B2</text>
+    <rect x="756" y="412" width="24" height="22" fill="#fef9d6" stroke="#444"/><text x="752" y="428" text-anchor="end">VIO</text>
+    <rect x="756" y="444" width="24" height="22" fill="#fff" stroke="#444"/><text x="752" y="460" text-anchor="end">GND</text>
+  </g>
+
+  <!-- ============================================== -->
+  <!-- MOTOR SECTION                                   -->
+  <!-- ============================================== -->
+  <text x="940" y="115" font-size="13" font-weight="bold" fill="#666" letter-spacing="2">MOTOR</text>
+
+  <rect x="940" y="240" width="220" height="240" fill="#fff" stroke="#333" stroke-width="2"/>
+  <text x="1050" y="265" text-anchor="middle" font-size="14" font-weight="bold">Kamoer KCS-SA</text>
+  <text x="1050" y="282" text-anchor="middle" font-size="11" fill="#666">24V stepper · 1.2A · 1.8°</text>
+  <text x="1050" y="298" text-anchor="middle" font-size="10" fill="#888">3-rotor BPT, 16# tube</text>
+
+  <!-- motor coil indicator -->
+  <circle cx="1050" cy="370" r="48" fill="none" stroke="#888" stroke-width="2"/>
+  <text x="1050" y="376" text-anchor="middle" font-size="11" fill="#666">motor</text>
+
+  <!-- 4 wires entering motor: BRN RED ORG YEL -->
+  <g font-size="11">
+    <rect x="940" y="430" width="40" height="20" fill="#a07050" stroke="#5a3818"/><text x="985" y="446">BRN</text>
+    <rect x="990" y="430" width="40" height="20" fill="#dc3030" stroke="#a02020"/><text x="1035" y="446">RED</text>
+    <rect x="1040" y="430" width="40" height="20" fill="#f08020" stroke="#a05010"/><text x="1085" y="446">ORG</text>
+    <rect x="1090" y="430" width="40" height="20" fill="#f0d030" stroke="#a08818"/><text x="1135" y="446">YEL</text>
+  </g>
+  <text x="965" y="470" font-size="9" fill="#666" text-anchor="middle">coil A</text>
+  <text x="1015" y="470" font-size="9" fill="#666" text-anchor="middle">coil A</text>
+  <text x="1065" y="470" font-size="9" fill="#666" text-anchor="middle">coil B</text>
+  <text x="1115" y="470" font-size="9" fill="#666" text-anchor="middle">coil B</text>
+
+  <!-- ============================================== -->
+  <!-- CONTROLLER SECTION                              -->
+  <!-- ============================================== -->
+  <text x="40" y="610" font-size="13" font-weight="bold" fill="#666" letter-spacing="2">CONTROLLER</text>
+
+  <rect x="40" y="625" width="440" height="200" fill="#fff" stroke="#333" stroke-width="2"/>
+  <text x="260" y="650" text-anchor="middle" font-size="14" font-weight="bold">Teensy 4.1</text>
+  <text x="260" y="667" text-anchor="middle" font-size="11" fill="#666">USB-C to laptop · running flow_chamber_teensy 0.4.0</text>
+
+  <!-- Teensy pins shown along bottom of board -->
+  <g font-size="11">
+    <rect x="60"  y="700" width="55" height="24" fill="#fef9d6" stroke="#444"/><text x="87"  y="716" text-anchor="middle">3.3V</text>
+    <rect x="125" y="700" width="55" height="24" fill="#fff" stroke="#444"/><text x="152" y="716" text-anchor="middle">GND</text>
+    <rect x="190" y="700" width="55" height="24" fill="#dceafe" stroke="#2978d8"/><text x="217" y="716" text-anchor="middle">pin 2 STEP</text>
+    <rect x="255" y="700" width="55" height="24" fill="#deecde" stroke="#38a754"/><text x="282" y="716" text-anchor="middle">pin 3 DIR</text>
+    <rect x="320" y="700" width="55" height="24" fill="#eaeaea" stroke="#666"/><text x="347" y="716" text-anchor="middle">pin 4 EN</text>
+    <rect x="385" y="700" width="80" height="24" fill="#f8f8f8" stroke="#bbb"/><text x="425" y="716" text-anchor="middle" fill="#888">others (open)</text>
+  </g>
+
+  <text x="260" y="765" text-anchor="middle" font-size="10" fill="#888">USB powers the Teensy; 3.3V is the regulated rail used to bias the breadboard 3.3V bus.</text>
+
+  <!-- ============================================== -->
+  <!-- WIRES                                            -->
+  <!-- ============================================== -->
+
+  <!-- 24V: V+ → cap+ → TMC VM -->
+  <path d="M 80 238 L 80 280 L 350 280 L 350 240" fill="none" stroke="#d92625" stroke-width="3"/>
+  <path d="M 350 240 L 350 200 L 540 200 L 540 231 L 564 231" fill="none" stroke="#d92625" stroke-width="3"/>
+  <text x="220" y="272" font-size="10" fill="#aa2222">24V (red)</text>
+
+  <!-- GND: V- → cap- → TMC GND (top right) -->
+  <path d="M 140 238 L 140 320 L 410 320 L 410 240" fill="none" stroke="#1a1a1a" stroke-width="3"/>
+  <path d="M 410 320 L 800 320 L 800 263 L 780 263" fill="none" stroke="#1a1a1a" stroke-width="3"/>
+  <text x="220" y="312" font-size="10" fill="#222">GND star (black)</text>
+
+  <!-- GND: also to TMC GND (bottom right) -->
+  <path d="M 800 320 L 820 320 L 820 455 L 780 455" fill="none" stroke="#1a1a1a" stroke-width="3"/>
+
+  <!-- GND: also to Teensy GND -->
+  <path d="M 410 320 L 410 700 L 152 700" fill="none" stroke="#1a1a1a" stroke-width="3"/>
+
+  <!-- 3.3V rail: Teensy 3.3V → TMC VIO, MS1, MS2 -->
+  <path d="M 87 700 L 87 660 L 510 660 L 510 423 L 540 423" fill="none" stroke="#ddc527" stroke-width="3"/>
+  <text x="240" y="654" font-size="10" fill="#a08818">3.3V rail (yellow) → VIO</text>
+  <!-- branch to MS1 -->
+  <path d="M 510 423 L 510 263 L 540 263" fill="none" stroke="#ddc527" stroke-width="3"/>
+  <text x="490" y="290" font-size="10" fill="#a08818" text-anchor="end">MS1, MS2</text>
+  <!-- branch to MS2 -->
+  <path d="M 510 295 L 540 295" fill="none" stroke="#ddc527" stroke-width="3"/>
+
+  <!-- EN: Teensy pin 4 → TMC EN -->
+  <path d="M 347 700 L 347 540 L 530 540 L 530 231 L 540 231" fill="none" stroke="#666" stroke-width="2.2"/>
+  <text x="437" y="535" font-size="10" fill="#444">pin 4 → EN</text>
+
+  <!-- STEP: Teensy pin 2 → TMC STEP -->
+  <path d="M 217 700 L 217 555 L 520 555 L 520 423 L 540 423" fill="none" stroke="#2978d8" stroke-width="2.2"/>
+  <text x="370" y="550" font-size="10" fill="#2065ab">pin 2 → STEP</text>
+
+  <!-- DIR: Teensy pin 3 → TMC DIR -->
+  <path d="M 282 700 L 282 580 L 525 580 L 525 455 L 540 455" fill="none" stroke="#38a754" stroke-width="2.2"/>
+  <text x="403" y="595" font-size="10" fill="#256434">pin 3 → DIR</text>
+
+  <!-- Motor wires: TMC A2 → BRN, A1 → RED, B1 → ORG, B2 → YEL -->
+  <path d="M 780 295 L 870 295 L 870 410 L 960 410 L 960 430" fill="none" stroke="#a07050" stroke-width="3"/>
+  <text x="800" y="288" font-size="10" fill="#5a3818">A2 → BRN</text>
+
+  <path d="M 780 327 L 880 327 L 880 405 L 1010 405 L 1010 430" fill="none" stroke="#dc3030" stroke-width="3"/>
+  <text x="800" y="320" font-size="10" fill="#a02020">A1 → RED</text>
+
+  <path d="M 780 359 L 890 359 L 890 400 L 1060 400 L 1060 430" fill="none" stroke="#f08020" stroke-width="3"/>
+  <text x="800" y="352" font-size="10" fill="#a05010">B1 → ORG</text>
+
+  <path d="M 780 391 L 900 391 L 900 395 L 1110 395 L 1110 430" fill="none" stroke="#f0d030" stroke-width="3"/>
+  <text x="800" y="384" font-size="10" fill="#a08818">B2 → YEL</text>
+
+  <!-- ============================================== -->
+  <!-- LEGEND                                          -->
+  <!-- ============================================== -->
+  <rect x="940" y="610" width="340" height="240" fill="#fff" stroke="#333" stroke-width="1.5"/>
+  <text x="960" y="635" font-size="13" font-weight="bold">Legend</text>
+
+  <line x1="960" y1="655" x2="1010" y2="655" stroke="#d92625" stroke-width="3"/>
+  <text x="1020" y="660" font-size="11">24V power (V+ rail)</text>
+
+  <line x1="960" y1="678" x2="1010" y2="678" stroke="#1a1a1a" stroke-width="3"/>
+  <text x="1020" y="683" font-size="11">GND star (V- rail)</text>
+
+  <line x1="960" y1="701" x2="1010" y2="701" stroke="#ddc527" stroke-width="3"/>
+  <text x="1020" y="706" font-size="11">3.3V (logic + VIO + MS1/MS2)</text>
+
+  <line x1="960" y1="724" x2="1010" y2="724" stroke="#666" stroke-width="2.2"/>
+  <text x="1020" y="729" font-size="11">EN (driver enable)</text>
+
+  <line x1="960" y1="747" x2="1010" y2="747" stroke="#2978d8" stroke-width="2.2"/>
+  <text x="1020" y="752" font-size="11">STEP pulse</text>
+
+  <line x1="960" y1="770" x2="1010" y2="770" stroke="#38a754" stroke-width="2.2"/>
+  <text x="1020" y="775" font-size="11">DIR (direction)</text>
+
+  <line x1="960" y1="793" x2="1010" y2="793" stroke="#a07050" stroke-width="3"/>
+  <text x="1020" y="798" font-size="11">motor coil A (BRN+RED pair)</text>
+
+  <line x1="960" y1="816" x2="1010" y2="816" stroke="#f08020" stroke-width="3"/>
+  <text x="1020" y="821" font-size="11">motor coil B (ORG+YEL pair)</text>
+
+  <!-- ============================================== -->
+  <!-- WARNINGS                                         -->
+  <!-- ============================================== -->
+  <rect x="40" y="845" width="900" height="38" fill="#fff5d8" stroke="#aa8800" stroke-width="1.5"/>
+  <text x="55" y="868" font-size="11" fill="#664400" font-weight="bold">⚠ Critical:</text>
+  <text x="135" y="868" font-size="11" fill="#553300">
+    BRN+RED must stay paired on coil A (TMC A1+A2). ORG+YEL must stay paired on coil B (B1+B2). Splitting coils across A/B = no rotation.
+  </text>
+</svg>

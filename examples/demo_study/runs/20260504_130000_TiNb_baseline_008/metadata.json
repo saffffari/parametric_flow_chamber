@@ -1,0 +1,22 @@
+{
+  "id": "277d842a4fe6432dbc6089510b49cc41",
+  "label": "TiNb_baseline_008",
+  "group_id": "grp_3bd04843",
+  "active": true,
+  "operator": "alex saffari",
+  "started_at": "2026-05-04T13:00:00+00:00",
+  "stopped_at": "2026-05-04T13:10:00+00:00",
+  "duration_s": 600.0,
+  "stop_reason": "completed",
+  "sample_id": "sample_008",
+  "cell_line": "MLO-Y4",
+  "passage": "P12",
+  "plating_date": "",
+  "substrate": "Ti-Nb",
+  "media": "alpha-MEM + 10% FBS",
+  "microscope": "Cedars-Sinai LSM 880",
+  "objective": "40x/1.2 W",
+  "notes_excerpt": "",
+  "import_source": null,
+  "schema": "flowchamber-run-metadata/v1"
+}

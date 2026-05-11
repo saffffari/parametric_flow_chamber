@@ -1,0 +1,22 @@
+{
+  "id": "d61dc889059e4bee87bf6e94da433913",
+  "label": "Ti6Al4V_1Pa_sine_005",
+  "group_id": "grp_98837ee9",
+  "active": true,
+  "operator": "alex saffari",
+  "started_at": "2026-05-04T11:30:00+00:00",
+  "stopped_at": "2026-05-04T12:00:00+00:00",
+  "duration_s": 1800.0,
+  "stop_reason": "completed",
+  "sample_id": "sample_005",
+  "cell_line": "MLO-Y4",
+  "passage": "P12",
+  "plating_date": "",
+  "substrate": "Ti-6Al-4V",
+  "media": "alpha-MEM + 10% FBS",
+  "microscope": "Cedars-Sinai LSM 880",
+  "objective": "40x/1.2 W",
+  "notes_excerpt": "",
+  "import_source": null,
+  "schema": "flowchamber-run-metadata/v1"
+}

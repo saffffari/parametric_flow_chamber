@@ -1,0 +1,22 @@
+{
+  "id": "c825b397df774b0da11f209941d4635e",
+  "label": "glass_1Pa_sine_003_botched",
+  "group_id": "grp_3dfd9bda",
+  "active": false,
+  "operator": "alex saffari",
+  "started_at": "2026-05-04T10:30:00+00:00",
+  "stopped_at": "2026-05-04T11:00:00+00:00",
+  "duration_s": 1800.0,
+  "stop_reason": "fault",
+  "sample_id": "sample_003",
+  "cell_line": "MLO-Y4",
+  "passage": "P12",
+  "plating_date": "",
+  "substrate": "glass",
+  "media": "alpha-MEM + 10% FBS",
+  "microscope": "Cedars-Sinai LSM 880",
+  "objective": "40x/1.2 W",
+  "notes_excerpt": "",
+  "import_source": null,
+  "schema": "flowchamber-run-metadata/v1"
+}

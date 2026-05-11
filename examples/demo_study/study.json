@@ -1,0 +1,42 @@
+{
+  "schema": "flowchamber-study/v1",
+  "meta": {
+    "id": "std_8cba23f3dd02",
+    "title": "MLO-Y4 Ti Alloy Pilot (Demo)",
+    "authors": "",
+    "affiliation": "",
+    "target_journal": "",
+    "hypothesis": "",
+    "status": "draft",
+    "doi": "",
+    "created_at": "2026-05-05T08:10:25.724128+00:00",
+    "last_modified_at": "2026-05-05T08:10:25.727129+00:00",
+    "schema": "flowchamber-study/v1"
+  },
+  "groups": [
+    {
+      "id": "grp_3dfd9bda",
+      "name": "Glass Controls",
+      "color": "#638BFF",
+      "purpose": ""
+    },
+    {
+      "id": "grp_98837ee9",
+      "name": "Ti-6Al-4V",
+      "color": "#FF395D",
+      "purpose": ""
+    },
+    {
+      "id": "grp_3bd04843",
+      "name": "Ti-Nb",
+      "color": "#F99224",
+      "purpose": ""
+    },
+    {
+      "id": "grp_1f7d1590",
+      "name": "QC Pass",
+      "color": "#00ED95",
+      "purpose": ""
+    }
+  ]
+}

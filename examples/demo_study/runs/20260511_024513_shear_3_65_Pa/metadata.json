@@ -1,0 +1,22 @@
+{
+  "schema": "flowchamber-run-metadata/v1",
+  "id": "b64b4beef788a742dd57ea0ae886b5dd",
+  "label": "shear 3.65 Pa",
+  "group_id": null,
+  "active": true,
+  "operator": "as",
+  "started_at": "2026-05-11T02:45:13.759Z",
+  "stopped_at": "2026-05-11T02:45:43.608Z",
+  "duration_s": 29.845,
+  "stop_reason": "manual_stop",
+  "sample_id": "",
+  "cell_line": "MLO-Y4",
+  "passage": "",
+  "plating_date": "",
+  "substrate": "glass",
+  "media": "alpha-MEM + 10% FBS",
+  "microscope": "",
+  "objective": "",
+  "notes_excerpt": "",
+  "import_source": null
+}

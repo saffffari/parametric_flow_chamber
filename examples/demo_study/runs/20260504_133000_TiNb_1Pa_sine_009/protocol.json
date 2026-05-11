@@ -1,0 +1,12 @@
+{
+  "name": "protocol_009",
+  "mean_pa": 1.0,
+  "amplitude_pa": 0.3,
+  "frequency_hz": 1.0,
+  "waveform": "sine",
+  "phase_deg": 0.0,
+  "duration_s": 1800.0,
+  "ramp_in_s": 30.0,
+  "ramp_out_s": 30.0,
+  "schema": "flowchamber-protocol/v1"
+}

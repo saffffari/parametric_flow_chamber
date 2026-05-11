@@ -1,0 +1,22 @@
+{
+  "id": "dce16af7183e4fda9baf604bc01f967f",
+  "label": "0.5Pa_dc_213948",
+  "group_id": null,
+  "active": true,
+  "operator": "",
+  "started_at": "2026-05-06T04:39:48.618470+00:00",
+  "stopped_at": "2026-05-06T04:39:54.373231+00:00",
+  "duration_s": 0.0,
+  "stop_reason": "manual_stop",
+  "sample_id": "",
+  "cell_line": "MLO-Y4",
+  "passage": "",
+  "plating_date": "",
+  "substrate": "glass",
+  "media": "alpha-MEM + 10% FBS",
+  "microscope": "",
+  "objective": "",
+  "notes_excerpt": "",
+  "import_source": null,
+  "schema": "flowchamber-run-metadata/v1"
+}

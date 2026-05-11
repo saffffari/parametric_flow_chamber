@@ -1,0 +1,12 @@
+{
+  "schema": "flowchamber-protocol/v1",
+  "name": "run_1778373646646",
+  "mean_pa": 0.35000000000000003,
+  "amplitude_pa": 0,
+  "frequency_hz": 1,
+  "waveform": "dc",
+  "phase_deg": 0,
+  "duration_s": 600,
+  "ramp_in_s": 30,
+  "ramp_out_s": 30
+}

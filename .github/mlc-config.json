@@ -1,0 +1,14 @@
+{
+  "ignorePatterns": [
+    { "pattern": "^https://www.figma.com/" },
+    { "pattern": "^https://orcid.org/" },
+    { "pattern": "^TBD$" }
+  ],
+  "replacementPatterns": [],
+  "httpHeaders": [],
+  "timeout": "20s",
+  "retryOn429": true,
+  "retryCount": 3,
+  "fallbackRetryDelay": "30s",
+  "aliveStatusCodes": [200, 206, 301, 302]
+}

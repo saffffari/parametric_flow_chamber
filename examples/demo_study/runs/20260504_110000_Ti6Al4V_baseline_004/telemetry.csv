@@ -1,0 +1,1 @@
+timestamp_us,run_time_s,state,commanded_shear_pa,commanded_flow_ml_min,commanded_step_rate_hz,temp_reservoir_c,trigger_count,fault_code

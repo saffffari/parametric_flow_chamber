@@ -1,0 +1,20 @@
+{
+  "firmware_name": "flow_chamber_teensy_smoke",
+  "firmware_version": "0.2.0",
+  "firmware_commit": "",
+  "app_version": "0.1.0",
+  "app_commit": "",
+  "channel_width_mm": 24,
+  "channel_height_mm": 0.25,
+  "channel_length_mm": 50,
+  "viscosity_pa_s": 0.001,
+  "steps_per_ml": 6400.0,
+  "steps_per_ml_calibrated_at": "2026-05-04",
+  "pump_model": "Kamoer KCS",
+  "pump_max_rpm": 200.0,
+  "motor_steps_per_rev": 200,
+  "microstepping": 16,
+  "tmc_vref_v": 0.3,
+  "psu_voltage_v": 24.0,
+  "schema": "flowchamber-system/v1"
+}

@@ -1,0 +1,85 @@
+# Node / Electron / Vite
+node_modules/
+dist/
+out/
+.vite/
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+.pnpm-store/
+
+# Electron-forge build output
+.webpack/
+release-builds/
+
+# Vitest / Playwright
+coverage/
+playwright-report/
+playwright/.cache/
+test-results/
+
+# TypeScript
+*.tsbuildinfo
+
+# Python (firmware tooling, scripts)
+__pycache__/
+*.py[cod]
+*$py.class
+.venv/
+venv/
+*.egg-info/
+.pytest_cache/
+
+# PlatformIO
+.pio/
+.pioenvs/
+.piolibdeps/
+
+# Fusion 360 backup files
+*.f3z
+*.f3d.bak
+
+# Editor / IDE
+.vscode/
+!.vscode/launch.json.example
+.idea/
+*.swp
+*.swo
+*~
+.cursor/
+
+# Agent / planning local state (not committed)
+.claude/
+
+# OS
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+desktop.ini
+
+# Local environment
+.env
+.env.local
+.env.*.local
+
+# Build artifacts
+*.exe
+*.dmg
+*.msi
+*.app/
+
+# Generated docs
+docs/_build/
+docs/_static/
+docs/_templates/
+
+# Misc
+*.tmp
+*.bak
+*.orig
