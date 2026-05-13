@@ -389,7 +389,7 @@ void handleCommand(char* command) {
   } else if (strcmp(verb, "TRIGGER") == 0) {
     // Fire a pulse on PIN_TRIGGER_OUT for the requested duration in microseconds.
     // Used to drive the microscope BNC trigger via the isolated trigger board.
-    // Default pulse 100us — well above the SDP810 / typical microscope minimum
+    // Default pulse 100us — well above the typical microscope minimum
     // detectable pulse width and short enough not to disturb the main loop.
     constexpr uint32_t MAX_TRIGGER_US = 10000;  // 10ms cap
     constexpr uint32_t DEFAULT_TRIGGER_US = 100;
