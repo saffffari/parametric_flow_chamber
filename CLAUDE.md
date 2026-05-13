@@ -17,7 +17,8 @@ Single source of truth for load-bearing constants. Do not change without flaggin
 | Pump | **Kamoer KCS** peristaltic, low-pulsation head | |
 | Controller MCU | **Teensy 4.1** | Deterministic timers, native USB, onboard SDIO |
 | Stepper driver | **TMC2209** in STEP/DIR + UART config | |
-| In-loop shear sensor | **Sensirion SDP810-500Pa** differential pressure (gas-side via standpipes) | |
+| In-loop flow sensor | **Sensirion SLF3S-1300F** inline liquid flow (PEEK-wetted, in the controller body; reports flow + media temperature on the same I²C frame). Shear is mapped from measured flow via the locked Hagen-Poiseuille channel geometry. |
+| Bench validation instrument (one-time per chamber, methods only) | **DFRobot SEN0343** — All Sensors LWLP5000 ±500 Pa differential pressure breakout, I²C — paired with temporary standpipes + Millex-FG hydrophobic separators on the chamber to characterize the SLF3S response per chamber. **Not in the deployed BOM.** |
 | Encoder | **AS5600** magnetic, 14-bit position, I²C | |
 | E-stop | **Latching motor-power switch** that physically removes 24 V from TMC2209 | |
 | Sealing | **Medical-grade neutral-cure silicone only** | RTV / acetoxy-cure forbidden — see § 3 |
@@ -34,11 +35,12 @@ Go to the right doc first instead of grepping the whole repo.
 |---|---|
 | `docs/theory.md` | Shear math, parameter family, scientific target, channel geometry, materials |
 | `docs/architecture.md` | System modules, microscope constraint, seal architecture, Fusion parameter set, validation plan |
-| `docs/protocol.md` | Wet-lab procedure: cell culture, cover-glass coating, dye loading, chamber assembly, steady and oscillatory stimulus, imaging configuration, data analysis |
+| `docs/protocol.md` | Wet-lab procedure: cell culture, cover-glass coating, dye loading, chamber assembly, steady and oscillatory stimulus, imaging configuration, data analysis, per-chamber sensor validation |
+| `docs/cleaning_protocol.md` | Clean-in-place procedure for the controller-side flow loop (SLF3S + pump + tubing) between experiments; standard, weekly, pre-shipment, pre-experiment-prime cycles |
 | `docs/design_language.md` | Hardware aesthetic (TX-6) + software aesthetic (Drams/Rams) |
 | `docs/reproducing.md` | End-to-end recipe to regenerate a paper figure (TBD; author when figures are finalized) |
 | `hardware/machining_notes.md` | Vendor-facing reference: tolerances, surface finishes, port specs, drawing callouts |
-| `hardware/electronics/README.md` | Controller architecture + pressure & shear verification system + bench bring-up checklist (consolidated) |
+| `hardware/electronics/README.md` | Controller architecture + flow & shear measurement system + bench bring-up checklist (consolidated) |
 | `hardware/coverglass_spec.md` | Cover glass spec + pocket clearance |
 | `hardware/microscope_i880_constraints.md` | LSM 880 stage / objective envelope |
 | `hardware/scope_holder_reference.md` | Caliper-derived holder/objective reference for collision checks |
@@ -52,7 +54,7 @@ Go to the right doc first instead of grepping the whole repo.
 - **No RTV / acetoxy-cure silicone anywhere.** RTV outgasses acetic acid that kills MLO-Y4 (per Karl Lewis). Use only medical-grade neutral-cure silicone for any sealing or encapsulation.
 - **No ASCII diagrams in docs.** Convert to prose + bullets, or render to image (Mermaid, SVG). Markdown tables and CLI-output code blocks are fine.
 - **App surface fill locked at `#CCCCCC`** (updated 2026-05-10; was `#F6F6F6` → `#D9D9D9` → `#CCCCCC` over the same session). Window, header, sidebar, every panel block, status bar, settings drawer — all share one surface tone. Block separation is carried by hairline borders only, no tonal stepping. **Knob caps are near-black at `#0D0D0D`** (5% L) — Braun-TG-60-style dark-control-on-light-panel arrangement. The surface lock lives in `app/src/styles/globals.css` (`--color-surface` and `--color-surface-raised`); do not diverge them or hardcode the literal in components — always reference `bg-surface` / `bg-surface-raised`.
-- **Sterility.** Chamber must be autoclavable. SDP810 is gas-only via standpipes; never wetted. Hydrophobic 0.22 µm membrane separators (Millex-FG) isolate gas from media.
+- **Sterility.** Chamber must be autoclavable. The SLF3S-1300F inline flow sensor lives in the controller body, not in the autoclaved assembly; its PEEK-wetted channel is cleaned-in-place per `docs/cleaning_protocol.md`. The chamber's optional pressure-tap ports (used only during one-time validation) are plugged for routine cell experiments; during validation, Millex-FG hydrophobic 0.22 µm membrane separators isolate the gas-side validation sensor from media.
 - **E-stop must be NC** (normally closed) — fail-safe; latches motor-power-removed on actuation.
 - **Teensy is 3.3 V only.** Any 5 V signal must be level-shifted or isolated. No exceptions.
 - **TMC2209 `ENABLE` defaults disabled** at boot/reset (pull-up). Drivers do not energize unless commanded.
@@ -125,7 +127,7 @@ The Electron app must build and run cleanly on **macOS** and **Windows**. Do not
 - Main control loop: **≤ 1 ms** (timer-driven; no blocking calls).
 - STEP pulse jitter: **≤ 1 µs** (hardware-timer generated, never software-loop generated).
 - SD write batch size: **≥ 256 B** (avoid per-sample writes; buffer + flush).
-- I²C read latency (SDP810, AS5600): **≤ 5 ms** per read; budget total bus time across all sensors.
+- I²C read latency (SLF3S-1300F, AS5600): **≤ 5 ms** per read; budget total bus time across all sensors.
 - App-side budgets (UI frame rate, IPC latency, plot redraw cost) deferred until profiling shows they matter.
 
 ## 11. What this project is NOT
@@ -153,10 +155,3 @@ Do not drift into these framings even if it would make the chamber "more impress
   - Time in **seconds** (SI), but minutes/hours acceptable in protocol prose where natural.
 - Do not switch to imperial units anywhere.
 
-## 14. Maintainer workspace context (out of repo)
-
-> The maintainer's local workspace at `D:\flow_chamber\` includes sibling directories not part of the public repo: `planning/` (HANDOFF, triage queue, session log, research brief), `manuscript/` (paper draft), `literature/` (cited papers, lit-survey notes, sota_2026 review), and `archive/flow_chamber_v1/` (parked v1 thesis materials and the Python v0.1 controller app as a parity reference for the v2.0 Electron port). These are intentionally out of repo scope. Public readers cloning the repo will not have them and should not need them — the repo is self-contained for fab + firmware + app + reproduction.
-
-## 15. Parallel agent workflow (maintainer-only)
-
-> Multiple AI agent runs may operate on this project concurrently from the maintainer workspace. Coordinate through three shared-state files at `D:\flow_chamber\planning\`: `HANDOFF.md` (locked decisions), `user_triage_queue.md` (open user-decisions), `session_log.md` (advances / blocks / queued / next-priorities, newest entries on top). At session start, read all three before doing any work. Append findings to the triage queue rather than blocking inline. Edit shared state in place — never `_v2` / `_old` / `_backup` forks. Move resolved triage items to `## Resolved` with date and outcome. End each session with a one-paragraph `session_log.md` entry. This section is for the maintainer's local agent workflow; it does not apply to public users of the repo.

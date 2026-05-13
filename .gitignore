@@ -83,3 +83,10 @@ docs/_templates/
 *.tmp
 *.bak
 *.orig
+
+# Citation metadata held back from public release until ORCIDs / DOI fields
+# are finalized
+CITATION.cff
+
+# Bench run captures (per-experiment artifacts; not the canonical demo data)
+examples/demo_study/runs/2026*/

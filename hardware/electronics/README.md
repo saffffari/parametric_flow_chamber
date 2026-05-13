@@ -554,52 +554,55 @@ with `w` and `h` known from the chamber drawing and verified by CMM after machin
 
 ### Why this specific part
 
-**SDP810-500Pa** over alternatives:
-- The 500 Pa range with bidirectional capability covers 0–1.25 Pa shear directly through the full 50 mm channel separation. For higher shear, the tap separation can be reduced (a 25 mm tap separation reads only half the total channel ΔP, doubling the effective range).
-- 0.1 Pa offset accuracy with no field recalibration. The SDP family has a deliberately specified zero-stability spec; most low-range differential sensors don't.
-- 0.5 ms measurement time captures peristaltic pulsation harmonics at frequencies up to ~1 kHz. Pulsation becomes a logged covariate rather than an unknown noise source.
-- I²C with the standard Sensirion driver stack the firmware can borrow.
-- The gas-only wetted requirement is acceptable because the standpipe approach is well-established, including in published open-source life-science instruments.
-- ΔP measures shear directly via the geometric relation, with no viscosity assumption — making the measurement insensitive to media aging, temperature drift on viscosity, and serum-batch variability.
+**Sensirion SLF3S-1300F** as the deployed in-loop flow sensor:
+- 1300 mL/min full-scale range covers the operating window (8–167 mL/min at 0.5–10 Pa shear over the locked channel) with headroom for higher-shear excursions and CIP flush rates.
+- ±5 % reading accuracy with factory zero. Combined with the per-chamber validation against the gas-side ΔP rig, total uncertainty on derived shear stays within ±5 %.
+- I²C interface returns flow rate, fluid temperature, and a bubble-detect flag in the same frame. Driver lives in the standard Sensirion library stack.
+- PEEK-wetted, biocompatible. CIP-cleaned per `docs/cleaning_protocol.md`; never autoclaved.
+- Direct measurement of the variable the closed-loop controller most needs (flow), with the viscosity-dependent map to shear handled in software against the locked channel geometry.
+
+**DFRobot SEN0343 (All Sensors LWLP5000 ±500 Pa diff pressure breakout)** as the validation instrument:
+- ±500 Pa range matches the expected ΔP across the locked 50 mm channel at 0.5–1.25 Pa shear directly; reduced tap separation extends the range.
+- ±1.5 % FSS accuracy — translates to constant ±7.5 Pa across the range, comparable to the SDP800-family parts at this band.
+- I²C output through the breakout's pre-soldered pull-ups; mounts on a Pi Pico 2 breadboard rig that lives in lab inventory and is amortized across every chamber built.
+- Gas-side measurement via standpipes + Millex-FG hydrophobic separators preserves chamber sterility during the validation pass.
 
 **What we explicitly chose against**:
-- **Sensirion SLF3S-4000B inline flow meter ($145–165)**: would give a second independent shear estimate via Q, but at >2× the cost of the SDP810 and adds an in-line wetted-path component that needs annual replacement. The brief argues this combination is publishable as a dual-redundant system; we are deferring that to a future budget cycle and treating the periodic at-bench calibration as the cross-check instead. The SLF3S is a clean future upgrade path: same I²C bus, same chamber plumbing, drops in alongside.
-- Honeywell ABP2 wet-wet at ±1 psi: cleaner plumbing, but ±1.5 % FSS on a ±6.9 kPa range is ~100 Pa total error band, marginal at 0.5 Pa shear (200 Pa ΔP) and unacceptable at 0.2 Pa.
-- TE MS5837-30BA × 2 with digital subtraction: budget tier, ~±0.2 Pa shear at 1 Pa, viable for τ ≥ 2 Pa work but doesn't reach the bottom of the calcium-flux band.
-- Setra Model 230 wet-wet capacitive: $700–$1,200, exceeds budget without proportional accuracy gain over the SDP810 plus standpipe approach.
-- Coriolis (Bronkhorst, Emerson MicroMotion): gold-standard accuracy, $4,000+, far over budget.
-- Ultrasonic clamp-on (SONOTEC SONOFLOW): $1,500–$3,500, fully sterile but priced beyond a single-channel addition.
-- Paddlewheel/turbine flow meters: dead volume, low-flow stalling, particulate clogging — wrong for cell media.
-- DIY hot-wire / custom MEMS wall-shear: research-grade, fouling-prone in serum, not commercially available.
+- **Bare Sensirion SDP810-500Pa** for the validation rig: equivalent ±500 Pa I²C diff pressure sensor, ±3 % reading accuracy, $30. Functionally fine; the SEN0343 wins on plug-and-play because the breakout includes pull-ups and a header, saving hand-soldering on an instrument used a handful of times per year.
+- **Single-sensor SDP810 + standpipes as the deployed architecture** (the v1-era proposal): keeps the chamber autoclavable and the sensor gas-only, but adds standpipe maintenance burden during every cell experiment and introduces gas-column compliance / interface-oscillation effects that the SLF3S sidesteps. The SDP architecture is now used only during the one-time validation pass.
+- **Inline flow sensors with shorter wetted-path lifetimes** (e.g. impeller / turbine): dead volume, particulate sensitivity, calibration drift — wrong for serum-containing cell media.
+- **Honeywell ABP2 wet-wet at ±1 psi**: cleaner plumbing for ΔP, but ±1.5 % FSS on a ±6.9 kPa range is ~100 Pa total error band, marginal at 0.5 Pa shear (200 Pa ΔP) and unacceptable at 0.2 Pa.
+- **TE MS5837-30BA × 2 with digital subtraction**: budget tier, viable for τ ≥ 2 Pa work but doesn't reach the bottom of the calcium-flux band.
+- **Setra Model 230 wet-wet capacitive**: $700–$1,200, exceeds budget without proportional accuracy gain.
+- **Coriolis (Bronkhorst, Emerson MicroMotion)**: gold-standard accuracy, $4,000+, far over budget.
+- **Ultrasonic clamp-on (SONOTEC SONOFLOW)**: $1,500–$3,500, fully sterile but priced beyond a single-channel addition.
+- **DIY hot-wire / custom MEMS wall-shear**: research-grade, fouling-prone in serum, not commercially available.
 
-### Pressure tap and standpipe implementation
+### Validation rig: pressure-tap and standpipe stack (one-time per chamber, methods only)
 
-The SDP810 reads gas-side ΔP. Two pressure taps in the chamber connect via short PEEK risers to two vertical standpipes maintaining a clean liquid/gas interface. The SDP810 sees only gas above the interface.
+> This section describes the **bench-side validation instrument** used once per chamber before deployment to characterize the SLF3S response against an independent gas-side ΔP measurement. The standpipe stack is **not** part of the deployed device — the chamber's pressure-tap ports are plugged during routine cell experiments and the validation rig (Pi Pico 2 + DFRobot SEN0343 on a breadboard) lives in lab inventory between uses. See `docs/protocol.md` § "Per-chamber sensor validation" for the procedure.
 
-**Pressure taps in the chamber body**: two 0.5 mm bores through the steel ceiling, perpendicular to the channel surface, located at axial positions 5 mm and 45 mm (40 mm separation, well inside the fully-developed region). Tap diameter <50 µm would be ideal for true static pressure measurement, but 0.5 mm is the practical machining limit and the geometric correction is small (∼1 % of ΔP) and characterizable. Each tap has a 1/4-28 flat-bottom port on the topside of the steel for IDEX-compatible PEEK fittings.
+The SEN0343 (LWLP5000) reads gas-side ΔP across the channel. Two optional pressure taps in the chamber connect via short PEEK risers to two vertical standpipes maintaining a clean liquid/gas interface. The sensor sees only gas above the interface.
+
+**Pressure taps in the chamber body**: two 0.5 mm bores through the steel ceiling, perpendicular to the channel surface, located at axial positions 5 mm and 45 mm (40 mm separation, well inside the fully-developed region). Tap diameter <50 µm would be ideal for true static pressure measurement, but 0.5 mm is the practical machining limit and the geometric correction is small (~1 % of ΔP) and characterizable. Each tap has a 1/4-28 flat-bottom port on the topside of the steel for IDEX-compatible PEEK fittings; the ports are plugged with a 1/4-28 plug for routine cell experiments and only opened during the per-chamber validation pass.
 
 **Riser tubing**: 1/16″ OD PEEK tubing from each tap rises ~50 mm to the standpipe inlet. PEEK because chemical resistance in the sterile loop matters and the small rise is rigid enough not to flex with peristaltic pulsation.
 
-**Standpipes**: 50 mm tall × 4–6 mm ID clear cast acrylic or borosilicate glass tubes, vertical, with the bottom 30 mm filled with degassed media and the top 20 mm trapped gas. The SDP810's two ports tee off the gas column near the top.
+**Standpipes**: 50 mm tall × 4–6 mm ID clear cast acrylic or borosilicate glass tubes, vertical, with the bottom 30 mm filled with degassed media and the top 20 mm trapped gas. The SEN0343's two barbed ports tee off the gas column near the top via 1/16″ ID silicone tubing.
 
-**Sealed-pocket sterile isolation**: a 0.22 µm hydrophobic membrane (Millex-FG, MilliporeSigma SLFG025LS, or equivalent) is plumbed inline between the bottom liquid column and the gas pocket above, isolating the gas from the wetted path. This is the primary sterile barrier — the gas above is microbiologically sealed from the media below. A second hydrophobic 0.22 µm vent filter at the top of each standpipe acts as redundant insurance against breach of the inline membrane and also limits long-term evaporation, but is not the load-bearing sterile element.
-
-The result is a wetted path that stays microbiologically closed, sterile-equivalent to a standard tissue-culture flask with a vented cap, while still giving the SDP810 the gas-side pressure reading it needs.
+**Sealed-pocket sterile isolation**: a 0.22 µm hydrophobic membrane (Millex-FG, MilliporeSigma SLFG025LS, or equivalent) is plumbed inline between the bottom liquid column and the gas pocket above, isolating the gas from the wetted path. This is the primary sterile barrier during the validation pass — the gas above is microbiologically sealed from the media below.
 
 **Geometry rationale**:
-- 30 mm liquid headroom absorbs ±1–5 mm peristaltic interface oscillation without liquid carryover toward the SDP810.
-- 20 mm gas headroom is short enough that gas-column compliance does not attenuate the pulsation harmonics the SDP810 is meant to measure. Longer gas columns (>80 mm) would low-pass-filter the signal we want.
+- 30 mm liquid headroom absorbs ±1–5 mm peristaltic interface oscillation without liquid carryover toward the sensor.
+- 20 mm gas headroom is short enough that gas-column compliance does not attenuate the pulsation harmonics the sensor is meant to capture during the validation sweep.
 - The two standpipes are mounted to the same insulated bracket, thermally coupled to each other, so any temperature drift is common-mode and rejected by the differential measurement.
 
-**Why this is acceptable for our experiment timescale**:
-- Calcium mechanotransduction sessions are hours, not weeks. The slow gas-exchange and evaporation effects that motivate hermetic-sealed bioreactor designs do not appear at this timescale.
-- Standard tissue-culture practice already exposes media to atmosphere through 0.22 µm filters at the flask cap, the incubator chamber, and the reservoir vent. The standpipe is one more such surface, geometrically and microbiologically equivalent.
-- Long-format experiments (>12 h) would benefit from a 2 mm layer of biocompatible mineral oil (Sigma M5310) on the gas/liquid interface inside the standpipe to suppress evaporation; not required for typical session length.
-
-**Standpipe failure modes**:
-- Bubble migration up the riser into the standpipe corrupts ΔP. Mitigated by the inline membrane separator and by daily pre-experiment standpipe re-prime.
-- Inline membrane wetting failure (very rare with hydrophobic PTFE Millex-FG) would let liquid pass into the gas pocket. Caught at the next zero check (SDP810 reads non-zero with pump off) and by the redundant top vent filter.
+**Standpipe failure modes during a validation pass**:
+- Bubble migration up the riser into the standpipe corrupts ΔP. Mitigated by the inline membrane separator and by re-priming before each validation sweep.
+- Inline membrane wetting failure (very rare with hydrophobic PTFE Millex-FG) would let liquid pass into the gas pocket. Caught at the next zero check (SEN0343 reads non-zero with pump off).
 - Temperature gradient between standpipe and chamber creates a density mismatch and false ΔP offset. Mitigated by routing both standpipes through the same insulated bracket.
+
+After the validation regression is captured and the certificate filed, the standpipe stack is disconnected, the chamber pressure-tap ports plugged, and the chamber reassembled for cell-experiment work driven by the SLF3S alone.
 
 ### Pulsation dampeners
 
@@ -613,7 +616,7 @@ The published consensus (PMC3426609; PMC9508572) is that **two dampeners — one
 
 **Tokai Hit MiViVo-BPU style buffer chamber**: commercial constant-pressure dampener, ~$1,500. Achieves <1 mmHg residual pulsation. Reference ceiling, not a buy.
 
-For the open-source build, the DIY approach is the right choice. Add a one-figure characterization pass during bring-up: SDP810 spectrum without dampener vs. with dampener, showing the ~10× attenuation at the pump fundamental. This becomes a methods-paper deliverable.
+For the open-source build, the DIY approach is the right choice. Add a one-figure characterization pass during bring-up: SLF3S fast-mode flow spectrum without dampener vs. with dampener, showing the ~10× attenuation at the pump fundamental. This becomes a methods-paper deliverable.
 
 ### Pump encoder
 
@@ -781,7 +784,7 @@ Wet microscope run is gated on steps 1–19 plus the existing wet-run gate in th
 
 ### Multi-tap pressure profile (future v3)
 
-For a v3 chamber revision, expand from two pressure taps to four (e.g., at 5, 20, 35, 45 mm from the inlet), multiplexed to a single SDP810 via four MS5837-30BAs at distinct I²C addresses through a TCA9548A multiplexer.
+For a v3 chamber revision, expand the validation rig from two pressure taps to four (e.g., at 5, 20, 35, 45 mm from the inlet), multiplexed to a single differential pressure sensor via four MS5837-30BAs at distinct I²C addresses through a TCA9548A multiplexer.
 
 Why it's worth the v3 complexity:
 - **Verifies the fully-developed Poiseuille assumption directly.** If the four pressures fall on a straight line vs. axial position, the channel is in laminar fully-developed flow and τ_w = (dP/dx) · h/2 is rigorous. If they curve at the inlet, you're seeing entrance effects that bias the shear computation.
@@ -796,7 +799,7 @@ The chamber paper's strongest external reference is a particle image velocimetry
 
 The chamber would need a transparent sapphire or fused silica side window for the PIV camera path (the bottom is the cover glass for the LSM 880; a second window in the sidewall is feasible). This is a one-time chamber redesign cost, not a recurring sensor cost.
 
-The µPIV station does not run during every experiment. It periodically validates that the SDP810 ΔP-derived shear values agree with a true measured velocity profile. This is the strongest independent verification possible at ~$500 and converts the methods paper from "indirect ΔP measurement plus reference-fluid calibration" to "indirect ΔP measurement plus reference-fluid calibration plus direct optical velocity profile validation."
+The µPIV station does not run during every experiment. It periodically validates that the SLF3S flow-derived shear values agree with a true measured velocity profile. This is the strongest independent verification possible at ~$500 and converts the methods paper from "in-loop flow measurement plus per-chamber ΔP cross-calibration plus reference-fluid calibration" to that combination plus direct optical velocity profile validation.
 
 Hold for after v2 validates the dual-sensor stack.
 

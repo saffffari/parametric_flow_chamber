@@ -1,10 +1,12 @@
 #include <Arduino.h>
 #include <SD.h>
+#include <Wire.h>
 #include <ctype.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 
+#include "display.h"
 #include "hardware_config.h"
 
 namespace {
@@ -511,9 +513,20 @@ void setup() {
     Serial.println("BOOT SD log unavailable; insert/format microSD and send SDTEST");
   }
 
+  // Bench OLED on default I²C bus (Teensy pins 18 SDA / 19 SCL). Non-fatal
+  // if it's unplugged or missing — we only log a one-line warning and keep
+  // booting. The motor + serial paths must not depend on the display.
+  Wire.begin();
+  if (!display_setup()) {
+    Serial.println("BOOT display not detected on I2C (skipping)");
+  } else {
+    Serial.println("BOOT display ready (SSD1327 @ I2C0)");
+  }
+
   state = State::Ready;
   appendLogRow("ready");
   printHelp();
+  display_invalidate();
 }
 
 void loop() {
@@ -521,4 +534,17 @@ void loop() {
   updateHeartbeat();
   updatePeriodicLog();
   updateAutoStop();
+
+  // Snapshot the anonymous-namespace globals into a struct the display
+  // module can consume without poking into our internal linkage. The display
+  // throttles itself to 10 Hz, so this snapshot is cheap regardless.
+  DisplayData snap = {
+    .state_name    = stateName(state),
+    .step_rate_hz  = activeStepRateHz,
+    .step_count    = stepCount,
+    .trigger_count = triggerInCount,
+    .dir_forward   = directionForward,
+    .boot_millis   = bootMillis,
+  };
+  display_tick(millis(), snap);
 }
