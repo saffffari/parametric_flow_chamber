@@ -5,7 +5,7 @@
 ## Contents
 
 1. **Controller Architecture** — Teensy 4.1 + TMC2209 stepper driver + isolated BNC trigger interface; pump control strategy; safety architecture; tentative Teensy pin map; firmware module layout.
-2. **Pressure & Shear Verification System** — Sensirion SDP810 differential-pressure stack; pressure-tap and standpipe implementation; pulsation dampeners; closed-loop shear stabilization; digital twin; LSM 880 frame-marker time alignment; calibration protocol.
+2. **Flow & Shear Measurement System** — Sensirion SLF3S-1300F inline liquid flow sensor in the controller; closed-loop shear stabilization via flow + Hagen-Poiseuille geometry mapping; pulsation dampeners; digital twin; LSM 880 frame-marker time alignment; calibration protocol. Per-chamber validation against a separate gas-side differential-pressure rig (DFRobot SEN0343 / All Sensors LWLP5000 + standpipes + Millex-FG separators) is described under "Validation methodology" and `docs/protocol.md` § "Per-chamber sensor validation".
 3. **Bench Bring-Up Checklist** — the procedural test sequence; bench setup table; suggested first wiring map; pump calibration; microscope trigger validation; wet-run gate.
 
 > **Cross-references:** body sections reference `design_spec_v2.md` (split → `docs/theory.md` + `docs/architecture.md`) and `Sensor Survey for Wall Shear Stress.md` (moved → `literature/sensor_survey_wall_shear.md`). In-body cross-references have **not** been updated.
@@ -483,7 +483,7 @@ Related docs: `README.md`, `design_spec_v2.md`, `rapid_direct_design_lock.md`, `
 
 ### Purpose
 
-Wall shear stress on the cells is the primary experimental variable for the calcium-flux work. The bone mechanotransduction literature almost universally reports shear as a calibrated pump RPM with no in-loop verification. This system measures shear continuously during every confocal frame via a differential pressure measurement across the channel, with periodic at-bench validation against an analytical reference. The chamber goes from "we calibrated the pump" to "shear is measured live and time-aligned with each LSM 880 frame."
+Wall shear stress on the cells is the primary experimental variable for the calcium-flux work. The bone mechanotransduction literature almost universally reports shear as a calibrated pump RPM with no in-loop verification. This system measures shear continuously during every confocal frame via a direct inline liquid flow measurement (Sensirion SLF3S-1300F, PEEK-wetted, sits in the controller body downstream of the pump), mapped to wall shear via the locked Hagen-Poiseuille channel geometry. Each chamber is also characterized once before deployment against an independent gas-side differential-pressure measurement (DFRobot SEN0343 / LWLP5000 ±500 Pa with temporary standpipes + Millex-FG hydrophobic separators) to validate the SLF3S response — that calibration figure is the methods-paper deliverable, after which the validation rig is removed and only the SLF3S runs in the deployed loop. The chamber goes from "we calibrated the pump" to "shear is measured live, time-aligned with each LSM 880 frame, and cross-validated against an independent physics-based measurement per chamber."
 
 ### Operating window
 
@@ -511,39 +511,46 @@ Reynolds number stays below ~25 across the entire window. The flow is laminar, f
 
 ### Architecture decision
 
-**Single-sensor shear measurement via differential pressure across the channel:**
+**Single-sensor shear measurement via inline liquid flow, cross-validated per chamber against an independent gas-side differential-pressure rig.**
 
-**Sensirion SDP810-500Pa** for ΔP across the channel — bidirectional ±500 Pa, ±3 % MV, 0.1 Pa zero-point accuracy, 0.5 ms response, I²C. Read with gas-side standpipe isolation from the wetted path. Two pressure taps in the chamber separated by ~40 mm of channel length feed the sensor through standpipes that maintain a clean liquid/gas interface.
+**Deployed device sensor — Sensirion SLF3S-1300F.** Inline liquid flow sensor, PEEK-wetted, biocompatible. Sits in the controller body downstream of the peristaltic pump and upstream of the chamber inlet. Reports volumetric flow rate (in mL/min) and media temperature on the same I²C frame, at up to ~1–2 kHz fast-mode sample rate. Closed-loop control runs on flow: the controller maps target wall shear stress to required flow rate via the locked Hagen-Poiseuille geometry, then closes a PID on the SLF3S reading. CIP-cleaned between experiments per `docs/cleaning_protocol.md`; never autoclaved.
 
-Wall shear comes directly from the geometric relation:
+**Per-chamber validation rig (one-time, bench instrument, not in BOM).** DFRobot SEN0343 (All Sensors LWLP5000 ±500 Pa differential pressure, I²C) read by a Raspberry Pi Pico 2 on a half-size breadboard. Gas-side measurement via temporary standpipes attached to dedicated pressure-tap ports on the chamber, with Millipore Millex-FG (PTFE) 0.22 µm hydrophobic membrane separators holding the liquid/gas interface. Used once per chamber before deployment to characterize the SLF3S response by simultaneous logging of SLF3S Q and SEN0343 ΔP across a flow sweep, fitting the regression to confirm slope ≈ 1.00 against the Hagen-Poiseuille prediction. The procedure lives in `docs/protocol.md` § "Per-chamber sensor validation". After the calibration certificate is captured the standpipes are removed, the pressure-tap ports plugged, and only the SLF3S runs during cell experiments.
+
+Wall shear comes from the inline flow measurement and the locked channel geometry:
 
 ```text
-τ_w = ΔP_measured · h / (2 · L_taps)
+τ_w = 6 μ Q_measured / (w · h²)
 ```
 
-with `h` and `L_taps` known from the chamber drawing and verified by CMM after machining. No viscosity assumption, no flow-rate calculation, no temperature correction in the primary measurement path. ΔP propagates through an incompressible liquid instantly, so peristaltic pulsation appears as structured signal in the measurement at the SDP810's 0.5 ms time resolution and can be characterized rather than guessed at.
+with `w` and `h` known from the chamber drawing and verified by CMM after machining, μ = 0.9 mPa·s for the standard working medium. The Hagen-Poiseuille mapping introduces a viscosity assumption that the gas-side differential-pressure rig does not — that's why the cross-validation is done once per chamber against an independent physics-based measurement.
 
-**What this single sensor covers**:
+**What the SLF3S covers in deployment**:
 
 | Signal | Mechanism |
 |---|---|
-| Wall shear stress (real-time, ms) | τ_w = ΔP · h / (2 · L_taps), direct |
-| Bubble in channel | sharp ΔP transient outside expected envelope |
-| Blockage | sustained ΔP rise above expected curve |
-| Leak in chamber | sustained ΔP drop below expected curve |
-| Pump stall | step command active but ΔP near zero |
-| Reservoir empty | step command active, ΔP collapses |
-| Stimulus onset timing | rising edge of ΔP, ms-resolved, Teensy-timestamped |
-| Peristaltic pulsation harmonics | 0.5 ms response time captures fundamental + harmonics |
-| Gap-height drift over time | ΔP at known commanded shear drifts from at-bench-calibrated baseline |
+| Wall shear stress (real-time) | τ_w = 6 μ Q / (w · h²), direct from flow |
+| Media temperature in the controller-side loop | Free from the same I²C frame as the flow read |
+| Bubble in line | Sharp negative-going Q transient + sensor's onboard bubble-detect flag (logged) |
+| Blockage | Pump command active but Q reads near zero |
+| Leak between pump and chamber | Inconsistency between flow setpoint and observed Q |
+| Pump stall | Step command active but Q near zero |
+| Reservoir empty | Step command active, Q collapses, bubble flag fires |
+| Stimulus onset timing | Rising edge of Q, ms-resolved, Teensy-timestamped |
+| Peristaltic pulsation harmonics | Fast-mode sampling at ~100–1000 Hz captures fundamental + harmonics |
+| Calibration drift over time | Q at known pump command drifts from at-bench-calibrated baseline |
 
-**What dropping the inline flow meter loses**:
+**What this architecture gains over the earlier differential-pressure-only design**:
 
-- Continuous gravimetric cross-check on the ΔP-derived shear value. Recovered by periodic at-bench calibration against a NIST-traceable reference fluid (see "Calibration protocol" below) rather than continuous in-loop verification.
-- Free air-in-line flag from the SLF3S. Recovered by ΔP-transient threshold detection in firmware — coarser but adequate at our experimental scale.
-- The "two independent shear estimates that share only h as a common error term" diagnostic that the brief flagged as publishable. Held as a future addition once the single-sensor build is validated.
+- Direct measurement of the controller's primary control variable (flow), no viscosity assumption in the live measurement.
+- Media temperature comes free in the same frame — useful for cross-checking incubator and chamber thermal stability.
+- No standpipe maintenance burden during routine cell experiments. Standpipes only need to exist during the one-time validation pass.
+- Cleaner sterile-loop story: the chamber alone is autoclaved; the SLF3S in the controller is CIP-cleaned between runs (`docs/cleaning_protocol.md`).
 
-The tradeoff is acceptable. ΔP is the right physical quantity (shear maps to it directly, not through a viscosity-dependent calculation), the standpipe approach is well-established, and the resulting system is materially simpler to build, sterilize, and maintain than the dual-redundant version.
+**What it loses relative to the older standpipe-and-SDP810 design**:
+
+- Wall shear is now derived from flow + viscosity, not direct from ΔP. The viscosity assumption is a real error term — partially mitigated by the SLF3S temperature reading and the per-chamber validation against the independent ΔP rig.
+- Continuous live ΔP-based verification during cell experiments. Recovered by the one-time validation figure and by periodic gravimetric re-calibration at the bench.
 
 ### Why this specific part
 
@@ -613,25 +620,25 @@ For the open-source build, the DIY approach is the right choice. Add a one-figur
 An AS5600 magnetic angle encoder mounted on the pump shaft provides 14-bit position with I²C readout. ~$10. The encoder serves two purposes:
 
 1. **Closed-loop verification**: confirms the motor is actually rotating at the commanded step rate (catches stalls and lost steps independent of TMC2209 diagnostics).
-2. **Phase-locked pulsation analysis**: synchronizes SDP810 ΔP samples to roller phase for harmonic decomposition (see "Pulsation as covariate" below).
-
-A third use — tubing-creep diagnostic via encoder-revolutions-to-delivered-volume ratio — would require the inline flow sensor we're explicitly skipping. Tubing creep is instead caught by the at-bench calibration cadence and by the digital twin's ratio drift over multi-hour experiments.
+2. **Phase-locked pulsation analysis**: synchronizes SLF3S flow-rate samples to roller phase for harmonic decomposition (see "Pulsation as covariate" below).
+3. **Tubing-creep diagnostic**: encoder-revolutions vs delivered-volume (SLF3S-integrated) ratio drifts when pump tubing wears, separating that failure mode from gap-height drift.
 
 ### Closed-loop shear stabilization
 
-The architecture doc currently uses open-loop pump control: `step_rate_hz = flow_ml_min × calibrated_steps_per_ml / 60`. With the SDP810 in the loop, the Teensy can close a PID directly on the experimental variable — wall shear stress — rather than on flow:
+The Teensy closes a PID directly on the experimental variable — wall shear stress — via the SLF3S flow reading and the locked channel geometry:
 
 ```text
-shear_measured = ΔP_measured · h / (2 · L_taps)
-error = target_shear_pa - shear_measured
-step_rate_hz = base_step_rate + Kp · error + Ki · ∫ error dt
+Q_target_ml_min   = target_shear_pa · w · h² / (6 · μ) · 60
+Q_measured_ml_min = SLF3S.read_flow()
+error             = Q_target_ml_min - Q_measured_ml_min
+step_rate_hz      = base_step_rate + Kp · error + Ki · ∫ error dt
 ```
 
-Closing on shear is cleaner than closing on Q because the controller compensates directly for whatever combination of pump tubing creep, gasket compression, and viscosity drift is currently affecting the cells, without having to model any of it.
+Closing on flow with a viscosity-aware shear setpoint is cleaner than open-loop pump control because the controller compensates directly for pump tubing creep, gasket compression, and pulsation residual, without having to model any of it. The viscosity assumption is the only modeled term, and it's checked once per chamber against the gas-side differential-pressure rig (see "Validation methodology" / `docs/protocol.md` § "Per-chamber sensor validation").
 
-Loop bandwidth is set by the SDP810 response time (0.5 ms raw, ~10–30 ms after smoothing to reject pulsation harmonics) and the dampener-attenuated pulsation residual. Conservative tuning (Kp ~0.5, Ki ~0.1) gives ±3 % shear stability over multi-hour experiments — uncommon in the bone mechanotransduction literature, where most papers report pre-calibrated pump RPM as ground truth without continuous correction.
+Loop bandwidth is set by the SLF3S response time (fast-mode sampling at ~100–1000 Hz, plus ~10–30 ms smoothing to reject pulsation harmonics) and the dampener-attenuated pulsation residual. Conservative tuning (Kp ~0.5, Ki ~0.1) gives ±3 % shear stability over multi-hour experiments — uncommon in the bone mechanotransduction literature, where most papers report pre-calibrated pump RPM as ground truth without continuous correction.
 
-The closed loop runs only after a sensor zero check has passed at startup (pump off → ΔP within ±1 Pa of zero). If the SDP810 faults, the controller reverts to open-loop on the last known good calibration and raises a warning.
+The closed loop runs only after a sensor zero check has passed at startup (pump off → Q within ±0.05 mL/min of zero). If the SLF3S faults, the controller reverts to open-loop on the last known good calibration and raises a warning.
 
 ### Real-time digital twin
 
@@ -665,22 +672,22 @@ The shear measurement is only useful if it's time-aligned with the calcium frame
 - **Firmware**: on each LSM trigger interrupt, log a synthetic event into the sensor stream as `frame_marker, frame_index`, with the same Teensy microsecond timestamp as the surrounding sensor samples.
 - **Analysis**: the LSM TIFF/CZI metadata contains the frame number; the Teensy log contains frame markers. Matching them aligns the two clock domains to <1 ms.
 
-This is a five-line firmware change and a single BNC cable, but without it the SDP810 shear measurement that grounds all the analyses cannot be tied to the calcium frames it's meant to validate.
+This is a five-line firmware change and a single BNC cable, but without it the SLF3S flow-derived shear measurement that grounds all the analyses cannot be tied to the calcium frames it's meant to validate.
 
 ### Pulsation as covariate
 
 There is published evidence that osteocyte mechanotransduction is frequency-tuned (Lewis 2017 framework, the Govey/Kwon/Hum/Donahue oscillatory-flow lineage). The spectral content of the shear waveform may matter more than the time-averaged value. The bone literature universally treats peristaltic pulsation as noise to be filtered. Treating it as a structured signal with logged harmonic content is a different framing.
 
 **Implementation**:
-1. Synchronize AS5600 encoder timestamp with SDP810 ΔP samples and LSM 880 frame trigger, all on the Teensy.
-2. Phase-bin the ΔP waveform to roller position over many revolutions.
+1. Synchronize AS5600 encoder timestamp with SLF3S flow-rate samples and LSM 880 frame trigger, all on the Teensy.
+2. Phase-bin the flow-rate waveform to roller position over many revolutions.
 3. Fourier-decompose to recover pulsation amplitude per harmonic.
 4. Log per-experiment: pulsation fundamental amplitude, second-harmonic amplitude, third-harmonic amplitude, total harmonic distortion.
 5. In analysis, test whether calcium event probability per cell is modulated by the local pulsation phase or harmonic content.
 
 Whether or not the cells respond to the harmonics, the analysis is publishable: the first time-resolved characterization of peristaltic pulsation as a covariate of osteocyte calcium response.
 
-Required hardware: the SDP810 + AS5600 + dampener pair already specified. The novelty is firmware and analysis, not parts cost.
+Required hardware: the SLF3S + AS5600 + dampener pair already specified. The novelty is firmware and analysis, not parts cost.
 
 ### Calibration protocol
 
@@ -690,8 +697,8 @@ At-bench calibration day, run before each experimental campaign. Without an inli
 2. **Reference fluid**: fill the loop with NIST-traceable glycerol-water mixture at known viscosity. 50:50 v/v glycerol-water at 25 °C is 5.62 mPa·s; viscosity standards traceable to NIST are available from Sigma at $30–50 per set. Use the temperature-corrected viscosity for the actual lab temperature.
 3. **Flow sweep**: run pump through five flow setpoints spanning the experimental range (e.g., 5, 20, 50, 100, 200 mL/min).
 4. **Gravimetric check at each setpoint**: collect outlet mass on a balance over a fixed interval to derive actual delivered Q. This is the at-bench equivalent of the inline flow sensor's continuous reading. Confirm Q matches commanded setpoint within 5 % across all five points; correct `steps_per_ml` if needed.
-5. **Pressure check at each setpoint**: confirm the SDP810 ΔP reading produces a shear value within 3 % of the analytical value computed from glycerol-water properties at the gravimetric Q.
-6. **Diagnose**: if pressure deviates >5 % from analytical, investigate gap height (CMM measurement of the chamber after disassembly), gasket condition, sensor zero offset, standpipe priming, dampener integrity. If gravimetric Q deviates >5 % from commanded, investigate pump tubing wear, motor calibration, or `steps_per_ml` constant.
+5. **Flow check at each setpoint**: confirm the SLF3S Q reading agrees with the gravimetric Q within ±5 % across all five points, and that the shear value derived from SLF3S Q via Hagen-Poiseuille is within 3 % of the analytical shear computed from the glycerol-water properties at the gravimetric Q.
+6. **Diagnose**: if SLF3S Q deviates >5 % from gravimetric, investigate sensor zero drift, bubble in the SLF3S channel, or recalibration of the SLF3S factory zero. If gravimetric Q deviates >5 % from commanded, investigate pump tubing wear, motor calibration, or `steps_per_ml` constant. If the derived shear deviates >5 % from analytical at correct Q, investigate gap height (CMM measurement of the chamber after disassembly) or gasket condition.
 7. **Save certificate**: store calibration data as part of every experiment's metadata directory. Include date, reference fluid lot, lab temperature, all five setpoint comparisons (commanded, gravimetric, ΔP-derived shear, analytical shear), and pass/fail flags.
 
 This converts the chamber from "we hope it's calibrated" to "we calibrated it Tuesday morning, here's the certificate." A single such protocol page is the difference between a methods chapter and a methods paper. The gravimetric step is the disciplined replacement for an inline flow sensor: less convenient, less continuous, but rigorous when done.
@@ -704,12 +711,12 @@ Cost per calibration campaign: $30–50 for reference fluid plus ~30–45 minute
 |---|---|---|
 | Chamber steel | Autoclave | 316L, electropolished, passivated; standard CIP/SIP compatible |
 | FEP/PEEK tubing | Autoclave | Replace per protocol cadence regardless |
-| SDP810 | Not autoclavable; gas-only path | The standpipes hold the wetted boundary; the SDP itself never sees liquid |
-| Standpipes (acrylic or borosilicate) | Autoclave the borosilicate variant; ethanol-flush for acrylic | Borosilicate is the more autoclavable choice; acrylic survives ethanol flush + DPBS rinse cycles |
-| Hydrophobic membrane filters (Millex-FG, both inline separators and top vents) | Replace per experimental campaign | Hydrophobic PTFE 0.22 µm, single-use mindset; the inline pair is the load-bearing sterile barrier |
+| Sensirion SLF3S-1300F (in controller, wetted) | **Not autoclavable.** Clean-in-place per `docs/cleaning_protocol.md`: DI water flush → 1 % Tergazyme → 70 % IPA → sterile DI water rinse. Recirculation through the same pump that drives experiments. | PEEK-wetted; max reagent temperature ~50 °C; no chlorinated solvents; never run dry |
+| Validation-rig SEN0343 (LWLP5000) — one-time per chamber, not in deployed device | Wipe housing with 70 % ethanol; sensor is gas-only via standpipes during the validation pass | See `docs/protocol.md` § "Per-chamber sensor validation" |
+| Hydrophobic membrane filters (Millex-FG) | Replace per validation campaign | Used during the one-time validation pass between chamber standpipes and the SEN0343; PTFE 0.22 µm, single-use |
 | Dampener syringes + membranes | Replace per use | Cheap; do not autoclave the trapped-air compliance assembly |
 
-Recommended workflow: autoclave the chamber, tubing, and (borosilicate) standpipes as one assembly. Connect the SDP810 aseptically afterward to the gas-side of the standpipes. The SDP810 itself never contacts liquid in this architecture, so its sterilization burden is minimal — wipe with ethanol, replace if any liquid carryover ever occurs.
+Recommended workflow: autoclave the chamber + tubing + IDEX fittings as one assembly. Re-attach to the controller-side loop (pump + SLF3S + dampeners) in a hood using sterile fittings; the SLF3S stays with the controller and is cleaned-in-place by recirculation, never exposed to steam. During each chamber's one-time validation pass, the gas-side standpipe stack is attached to the chamber's pressure-tap ports and is autoclavable separately if borosilicate, ethanol-flushed if acrylic; the SEN0343 itself wipes clean with ethanol.
 
 Verify there is no DC ground loop between the LSM 880 stage, the chamber, and the Teensy power supply during bring-up. This has caused mystery noise in published microfluidic-confocal setups even when no sensor is in direct media contact.
 
@@ -719,12 +726,12 @@ Pin map additions to `hardware_config.h`:
 
 | Teensy pin | Function | Notes |
 |---:|---|---|
-| 18 SDA | SDP810 and AS5600 I²C | Shared bus; sensors use distinct addresses |
+| 18 SDA | SLF3S-1300F and AS5600 I²C | Shared bus; sensors use distinct addresses |
 | 19 SCL | I²C | |
 | (existing) 6 | LSM 880 frame trigger interrupt | Reused from existing trigger IN |
 
 I²C address allocation:
-- SDP810: 0x25 (default)
+- SLF3S-1300F: 0x08 (default for the SLF3 family on Wire)
 - AS5600: 0x36 (default)
 - DS18B20 probes: OneWire on pin 20 (existing)
 
@@ -733,25 +740,25 @@ If long I²C runs (>1 m) become necessary between the controller and the chamber
 New log columns in the CSV log:
 
 ```text
-dp_pa, shear_from_dp_pa, sdp810_chip_temp_c,
-twin_quality_ratio, pulsation_fundamental_amplitude_pa,
+flow_ml_min, shear_from_flow_pa, slf3s_temperature_c,
+slf3s_flags, twin_quality_ratio, pulsation_fundamental_amplitude_pct,
 encoder_position_deg, frame_marker, frame_index,
 calibration_certificate_id
 ```
 
-The `sdp810_chip_temp_c` column is the sensor's internal chip temperature, free over the same I²C read as the pressure measurement. It is **not** a media temperature signal (DS18B20 probes serve that role per the architecture doc); it is logged as a sensor-health channel that catches thermal drift, validates the factory pressure-temp compensation is in its operating envelope, and provides a useful proxy for ambient temperature inside the controller enclosure.
+The `slf3s_temperature_c` column is the SLF3S's reading of the fluid temperature in the sensor channel, free over the same I²C read as the flow measurement. It serves as a media-side thermal sanity check that complements any DS18B20 probes elsewhere in the loop. `slf3s_flags` carries the sensor's onboard signaling word (bubble-detect, etc.).
 
 New fault codes in the `safety` module:
 
 | Fault | Trigger | Action |
 |---|---|---|
-| `PRESSURE_SENSOR_FAULT` | SDP810 communication failure | Pump disable, fault latch |
+| `FLOW_SENSOR_FAULT` | SLF3S-1300F communication failure | Pump disable, fault latch |
 | `SHEAR_OUT_OF_RANGE` | Measured shear deviates >10 % from setpoint for >5 s while in HOLDING state | Pump disable, fault latch, require reset |
 | `TWIN_QUALITY_DEGRADED` | `twin_quality_ratio` outside [0.85, 1.15] for >30 s | Warning, log, continue; recommend calibration day |
-| `STANDPIPE_PRIME_REQUIRED` | SDP810 zero offset >5 Pa drift from last calibration with pump off | Warning at startup; require operator acknowledge |
-| `BUBBLE_LIKELY` | ΔP transient outside expected envelope (sharp spike >3× pulsation amplitude) | Log event with timestamp, continue |
+| `FLOW_ZERO_OUT_OF_TOL` | SLF3S zero offset >0.1 mL/min drift from last calibration with pump off | Warning at startup; require operator acknowledge |
+| `BUBBLE_LIKELY` | SLF3S bubble-detect flag fires OR sharp Q transient outside expected envelope | Log event with timestamp, continue |
 
-New firmware module: `shear_estimator`. Inputs: SDP810 reads, encoder position, temperature, pump command. Outputs: shear estimate, twin quality ratio, pulsation harmonic decomposition. Lives between `sensors` and `protocol_runner` in the existing module split.
+New firmware module: `shear_estimator`. Inputs: SLF3S flow + temperature, encoder position, pump command. Outputs: shear estimate, twin quality ratio, pulsation harmonic decomposition. Lives between `sensors` and `protocol_runner` in the existing module split.
 
 ### Bench bring-up sequence
 
@@ -759,15 +766,16 @@ Extension to `electronics_bringup_checklist.md`. After steps 1–10 of the exist
 
 | Step | Test | Pass condition |
 |---:|---|---|
-| 11 | SDP810 dry read | Sensor reads ~0 Pa with ports open to atmosphere |
-| 12 | Standpipe prime | Both standpipes at correct level, inline hydrophobic membrane separators wetted on the liquid side and dry on the gas side, top vent filters seated, no bubbles in risers |
-| 13 | SDP810 wet zero | With pump off and water in loop, SDP810 reads <±1 Pa |
+| 11 | SLF3S dry / air-purge read | Sensor reads ~0 mL/min with the channel empty and pump off; bubble-detect flag asserts |
+| 12 | Loop prime | Reservoir → pump → SLF3S → dampener → chamber loop primed with degassed working medium, no persistent bubbles at the SLF3S inlet |
+| 13 | SLF3S wet zero | With pump off and water in loop, SLF3S reads within ±0.05 mL/min of zero after 30 s settle |
 | 14 | Encoder sanity | AS5600 returns expected position changes during pump rotation |
-| 15 | Calibration day verification | SDP810 shear within 3 % of analytical at five setpoints with reference fluid; gravimetric Q within 5 % of commanded |
-| 16 | Pulsation characterization | SDP810 spectrum shows expected pump fundamental and harmonics |
+| 15 | Calibration day verification | SLF3S Q within ±5 % of gravimetric Q at five setpoints with reference fluid; derived shear within ±3 % of analytical |
+| 16 | Pulsation characterization | SLF3S fast-mode spectrum shows expected pump fundamental and harmonics |
 | 17 | Dampener characterization | Spectrum with dampeners shows ~10× attenuation at fundamental |
 | 18 | Frame-marker time alignment | Synthetic LSM trigger pulses produce frame markers at correct timestamps |
 | 19 | Closed-loop shear stabilization | PID holds shear at setpoint within ±3 % over 30-minute hold |
+| 20 | Per-chamber validation rig cross-check (one-time per chamber, methods only) | SEN0343 ΔP-derived flow tracks SLF3S Q within ±5 % across the operating range; regression slope 1.00 ± 0.05; certificate filed |
 
 Wet microscope run is gated on steps 1–19 plus the existing wet-run gate in the bring-up checklist.
 
@@ -796,45 +804,53 @@ Hold for after v2 validates the dual-sensor stack.
 
 The bone mechanotransduction literature almost universally reports shear as a calibrated pump RPM with no in-loop verification. This sensor stack supports four claims, each substantive enough for individual mention in a methods paper:
 
-1. **(Strong)** Continuous, in-loop, ms-resolved wall shear measurement via differential pressure across the channel, time-aligned with each LSM 880 frame. First in-loop shear measurement in an osteocyte parallel-plate flow chamber.
-2. **(Strong)** Closed-loop shear-stabilized peristaltic perfusion, with the SDP810 as the feedback element controlling pump duty cycle directly on the experimental variable (shear, not flow). Unprecedented in the MLO-Y4 literature.
-3. Quantitative logging of peristaltic pulsation as a covariate of calcium-flux response, via the high-bandwidth SDP810 phase-locked to the AS5600 encoder.
-4. Open-source firmware (Teensyduino), parametric chamber CAD, characterized DIY pulsation dampeners, and per-campaign calibration protocol with NIST-traceable reference fluid plus gravimetric Q verification, releasable under a CERN OHL-style license.
-
-Adding an inline flow sensor in a future revision recovers the brief's "dual-redundant cross-validation" framing as a fifth, additive claim — held for that future budget cycle.
+1. **(Strong)** Continuous, in-loop wall shear measurement via inline liquid flow (Sensirion SLF3S-1300F) mapped to shear through the locked Hagen-Poiseuille channel geometry, time-aligned with each LSM 880 frame. First in-loop shear measurement in an osteocyte parallel-plate flow chamber.
+2. **(Strong)** Closed-loop shear-stabilized peristaltic perfusion, with the SLF3S as the feedback element controlling pump duty cycle directly on the experimental variable (shear, mapped from measured flow + geometry). Unprecedented in the MLO-Y4 literature.
+3. Quantitative logging of peristaltic pulsation as a covariate of calcium-flux response, via the high-bandwidth SLF3S sample stream phase-locked to the AS5600 encoder.
+4. **(Strong)** Per-chamber cross-validation against an independent gas-side differential-pressure measurement (DFRobot SEN0343 / All Sensors LWLP5000 + temporary standpipes + Millex-FG separators), giving a calibration figure that grounds every downstream shear value reported.
+5. Open-source firmware (Teensyduino), parametric chamber CAD, characterized DIY pulsation dampeners, and per-campaign calibration protocol with NIST-traceable reference fluid plus gravimetric Q verification, releasable under MIT (code) + CC-BY-4.0 (hardware/docs).
 
 ### BOM and cost summary
 
+**Deployed device:**
+
 | Item | Source | Cost (USD) |
 |---|---|---|
-| Sensirion SDP810-500Pa differential pressure sensor | Mouser / Digi-Key / Newark | $60–80 |
+| Sensirion SLF3S-1300F inline liquid flow sensor | Digi-Key / Mouser | $230–280 |
 | AS5600 magnetic encoder breakout + magnet | Adafruit / Mouser | $10 |
-| 2× IDEX 1/4-28 pressure-tap fittings (PEEK) | IDEX / Cole-Parmer | $30 |
-| 2× standpipes (borosilicate or acrylic, 6 mm × 50 mm + tee fittings) | McMaster / Sigma | $20 |
-| 4× hydrophobic 0.22 µm membrane filters (Millex-FG) — 2 inline as primary sterile barrier, 2 at standpipe tops as redundant vent | Sigma / Fisher | $20 |
+| 2× IDEX 1/4-28 inlet/outlet fittings (PEEK) | IDEX / Cole-Parmer | $30 |
 | 2× DIY dampener syringes (5 mL each) + tee fittings + Millex-FG separator | McMaster / Cole-Parmer | $20 |
-| Biocompatible mineral oil for standpipe interface (Sigma M5310) | Sigma | $15 |
 | Mounting brackets, cable, JST connectors, pull-ups | already in inventory + ~$10 | $10 |
-| **Subtotal — single-sensor SDP810 stack** | | **$185–215** |
+| **Subtotal — deployed device flow + pulsation stack** | | **$300–360** |
 | Calibration day reference fluid (NIST-traceable glycerol-water set) | Sigma | $30–50 per campaign |
 | Gravimetric calibration: scale | most labs already have one | $0 |
 
-**Future upgrade — add Sensirion SLF3S-4000B inline flow meter**: ~$175–195 additional (sensor + 2× IDEX inline fittings). Drops in alongside the SDP810 on the same I²C bus, recovers continuous Q cross-validation, supports the dual-redundant claim the brief originally proposed.
+**Per-chamber validation rig (one-time per chamber, not in deployed BOM):**
 
-The $480 figure in the survey doc rolls in pH, Pt100, and the inline flow sensor for full closed-loop bioreactor work. For SDP810-only shear verification, the $185–215 stack here is the right scope.
+| Item | Source | Cost (USD) |
+|---|---|---|
+| DFRobot SEN0343 (LWLP5000 ±500 Pa diff pressure, I²C) | DFRobot / Digi-Key | $50–65 |
+| Raspberry Pi Pico 2 with headers | Adafruit / Mouser | $5 |
+| Half-size breadboard + jumper wires | generic | $5 |
+| 2× standpipes (borosilicate or acrylic, 6 mm × 50 mm + tee fittings) | McMaster / Sigma | $20 |
+| 2× hydrophobic 0.22 µm membrane filters (Millex-FG) — gas-side barriers | Sigma / Fisher | $15 |
+| 1/16″ ID silicone tubing + luer-to-barb adapters | Cole-Parmer | $15 |
+| **Subtotal — validation rig** | | **$110–125** |
+
+The validation rig is amortized across every chamber built; one rig in the lab serves all subsequent chamber bring-ups.
 
 ### Open questions before purchase
 
-- Verify the SDP810-500Pa is the best-matched range for the specific shear band the user actually targets. If the experimental window is 0.5–4 Pa, SDP810-500Pa is correct (covers 0.5–2.5 Pa shear directly through the full tap separation, scales further by reducing tap separation). If the user pushes to 10 Pa routinely, switch to SDP810-2500Pa or pair with a partial-chamber tap geometry.
-- Confirm chamber steel can accept two pressure-tap bores without compromising the cover-glass pocket geometry. The pressure taps go through the top steel ceiling, well clear of the channel-floor optical region, but the machining drawing should explicitly call them out before sending to RapidDirect.
-- Confirm DC ground-loop isolation between LSM 880 stage, chamber metal, sensor electronics, and Teensy power supply during the bench bring-up before the first wet microscope run.
-- Decide whether the at-bench gravimetric step is run at every campaign or quarterly. Daily is rigorous but costly in bench time; quarterly with daily SDP810 zero-check is the practical compromise for a working lab.
+- Verify the SLF3S-1300F's ±26 mL/min full-scale range is right for the operating window. For 0.5–10 Pa shear over the locked 24 mm × 0.25 mm channel, required Q runs ~8 to ~167 mL/min — comfortably inside the SLF3S full-scale. If the experimental window expands above ~10 Pa shear routinely, evaluate the SLF3S-4000B (wider range, similar architecture).
+- Confirm chamber steel can accept two optional pressure-tap bores for the one-time validation rig without compromising the cover-glass pocket geometry. The bores are plugged during routine experiments; they only need to be present for the validation pass. The pressure taps go through the top steel ceiling, well clear of the channel-floor optical region.
+- Confirm DC ground-loop isolation between LSM 880 stage, chamber metal, controller power supply, and Teensy ground during the bench bring-up before the first wet microscope run.
+- Decide on the at-bench gravimetric calibration cadence. Recommended: quarterly full calibration + daily SLF3S zero-check at the pre-experiment prime (see `docs/cleaning_protocol.md` § "Pre-experiment prime").
 
 ### Recommendation
 
-Lock the single-sensor SDP810 stack as the v2 chamber sensing architecture, ~$185–215 in parts. Build the standpipes and DIY dampeners during electronics bring-up alongside the existing checklist. Run the at-bench calibration protocol with NIST-traceable reference fluid plus gravimetric Q verification before the first cell experiment, and at a defensible cadence thereafter (recommended: quarterly full calibration + daily zero check).
+Lock the SLF3S-1300F as the deployed in-loop flow sensor with closed-loop shear control via Hagen-Poiseuille geometry mapping (~$300–360 in deployed-device parts). Build the DIY dampeners during electronics bring-up alongside the existing checklist. Run the at-bench calibration protocol with NIST-traceable reference fluid plus gravimetric Q verification before the first cell experiment, and at a defensible cadence thereafter (recommended: quarterly full calibration + daily SLF3S zero check).
 
-The continuous Q cross-validation that the brief originally framed as the headline publishable feature is held as a future upgrade — the SLF3S-4000B drops in cleanly on the existing I²C bus when budget allows. Until then, the single-sensor build delivers the primary publishable claims (in-loop shear measurement + closed-loop shear-stabilized perfusion + pulsation as covariate) on its own, which is already a methodological contribution beyond what the current bone mechanotransduction literature offers.
+Once per chamber, run the validation pass against the bench-side gas-side ΔP rig (~$110–125 in shared lab inventory, amortized across all chambers built). The resulting cross-calibration figure backs the methods-paper claim that the in-loop SLF3S measurement is independently grounded.
 
 Multi-tap pressure profiling and µPIV validation remain v3 and methods-paper-supporting work respectively. None of those gate the v2 build.
 

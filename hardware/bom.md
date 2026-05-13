@@ -21,9 +21,7 @@ Vendor: see `hardware/machining_notes.md` § "Vendor Notes" for Xometry vs Rapid
 | FEP/PTFE tubing, 1/16" OD | McMaster `2129T11` or equivalent | meters | Inlet/outlet to chamber |
 | Pump tubing (peristaltic) | platinum-cured silicone, matched to pump head | as required | |
 | Reservoir | borosilicate GL45 bottle | 1 | |
-| 0.22 µm hydrophobic membrane filters | Millipore Millex-FG (PTFE) **SLFG025LS** or equivalent | 4–8 | Sterile barrier in standpipe stack; 2 inline (load-bearing) + 2 vent (redundant) |
-| Standpipe tubes | borosilicate or acrylic, 6 mm × 50 mm | 2 | |
-| IDEX Super Flangeless 1/4-28 fittings | IDEX / Cole-Parmer | as required | Chamber inlet / outlet / pressure taps |
+| IDEX Super Flangeless 1/4-28 fittings | IDEX / Cole-Parmer | as required | Chamber inlet / outlet |
 
 ## Pump and motor
 
@@ -42,7 +40,7 @@ Vendor: see `hardware/machining_notes.md` § "Vendor Notes" for Xometry vs Rapid
 | Teensy 4.1 terminal block breakout | 1 | Wiring interface |
 | TMC2209 stepper driver carrier | 1 + 1 spare | UART config, STEP/DIR drive |
 | MicroSD card | 64 GB UHS-I U3 V30 A2 | Data logging |
-| Sensirion **SDP810-500Pa** differential pressure | 1 | I²C, 0.5 ms response, ±0.1 Pa zero accuracy |
+| Sensirion **SLF3S-1300F** inline liquid flow sensor | 1 | I²C, direct flow measurement (mL/min) + media temperature on the same frame; PEEK-wetted, biocompatible, CIP-cleaned per `docs/cleaning_protocol.md`; sits in-line between pump and chamber inlet |
 | AS5600 magnetic encoder breakout + magnet | 1 | Pump-shaft phase logging |
 | DS18B20 waterproof temperature probes | 3–5 | Reservoir / inlet / ambient |
 | 4.7 kΩ resistor (OneWire pull-up) | 1 | |
@@ -58,6 +56,21 @@ Vendor: see `hardware/machining_notes.md` § "Vendor Notes" for Xometry vs Rapid
 - 8-channel logic analyzer (24 MHz minimum) — STEP frequency / UART / trigger timing validation
 - Oscilloscope (analog) — voltage rail and signal-integrity checks
 - Multimeter, ferrule crimping kit, heat shrink, 22 AWG silicone wire
+
+## Validation rig (one-time per chamber, not in deployed device)
+
+A separate bench instrument used once per chamber build to characterize the SLF3S-1300F response by cross-checking against an independent differential-pressure measurement on the chamber. Lives in the lab toolkit; not shipped with the chamber. See `docs/protocol.md` § "Per-chamber sensor validation" for the procedure and `hardware/electronics/README.md` § "Validation methodology" for the architecture.
+
+| Part | Vendor / P/N | Qty | Notes |
+|---|---|---:|---|
+| Differential pressure sensor breakout | DFRobot **SEN0343** (All Sensors LWLP5000 ±500 Pa, I²C) | 1 | 3 mm barbed dual ports; pre-mounted on breakout with pull-ups + level shifter |
+| Microcontroller (validation host) | Raspberry Pi Pico 2 (or any 3.3 V I²C-capable board) | 1 | Reads SEN0343 over I²C; dumps CSV over USB serial to bench laptop |
+| Breadboard, half-size (400 tie-point) | generic | 1 | Mounts Pico + SEN0343 + jumpers |
+| 0.22 µm hydrophobic membrane filters | Millipore Millex-FG (PTFE) **SLFG025LS** | 2 | Gas-side barrier between chamber standpipe and SEN0343 |
+| Standpipe tubes | borosilicate or acrylic, 4–6 mm ID × 50 mm | 2 | Temporary, attached to chamber pressure-tap ports during validation runs only |
+| Silicone tubing, 1/16" ID | Cole-Parmer or equivalent | 1 m | Connects standpipe → Millex-FG → SEN0343 barbs |
+| Luer-to-barb adapters | 1/16" or 3/32" barb to female luer | 4 | Mates Millex-FG luer outlets to tubing |
+| USB cable, Pico end | USB-A / USB-C to micro-USB or USB-C, depending on Pico revision | 1 | Pico → bench laptop for serial logging |
 
 ## To be filled in during paper-prep
 

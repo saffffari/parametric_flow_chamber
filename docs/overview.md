@@ -14,10 +14,11 @@ An open-source parametric parallel-plate perfusion flow chamber for delivering p
 
 Headline claims (filled in on publication):
 
-1. **Continuous, in-loop, ms-resolved wall shear measurement** via differential pressure across the channel, time-aligned with each microscope frame. First in-loop shear measurement in an osteocyte parallel-plate flow chamber.
-2. **Closed-loop shear-stabilized peristaltic perfusion** — the SDP810 sensor is the feedback element controlling pump duty cycle directly on the experimental variable (shear, not flow). Unprecedented in the MLO-Y4 literature.
-3. **Quantitative logging of peristaltic pulsation as a covariate** of calcium-flux response, via the high-bandwidth pressure sensor phase-locked to the pump-shaft encoder.
-4. **End-to-end open-source release** — parametric CAD, machinable STEP, deterministic firmware, operator app, calibration protocol — all under MIT (code) + CC-BY-4.0 (hardware/docs).
+1. **Continuous, in-loop wall shear measurement** via inline liquid flow (Sensirion SLF3S-1300F), time-aligned with each microscope frame. First in-loop shear measurement in an osteocyte parallel-plate flow chamber.
+2. **Closed-loop shear-stabilized peristaltic perfusion** — the SLF3S inline flow sensor is the feedback element controlling pump duty cycle directly on the experimental variable (shear, mapped from flow via Hagen-Poiseuille geometry). Unprecedented in the MLO-Y4 literature.
+3. **Quantitative logging of peristaltic pulsation as a covariate** of calcium-flux response, via the high-bandwidth SLF3S sample stream phase-locked to the pump-shaft encoder.
+4. **Cross-validated shear measurement.** Each chamber is characterized once before deployment against an independent differential-pressure measurement (gas-side standpipes + DFRobot SEN0343 / LWLP5000), giving a per-chamber calibration figure published in the methods.
+5. **End-to-end open-source release** — parametric CAD, machinable STEP, deterministic firmware, operator app, calibration protocol — all under MIT (code) + CC-BY-4.0 (hardware/docs).
 
 See the paper (TBD on publication) for the experimental dataset and quantitative results.
 

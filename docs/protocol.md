@@ -10,7 +10,7 @@ According to PubMed, the closest published match to our experimental setup — M
 
 - **Lu, Huo, Park, Guo (2012). Calcium response in osteocytic networks under steady and oscillatory fluid flow.** *Bone* 51(3):466–73. PMID 22750013. PMC3412915. [DOI: 10.1016/j.bone.2012.05.021](https://doi.org/10.1016/j.bone.2012.05.021)
 
-Used as the primary protocol reference for chamber-based calcium imaging timing, dye loading, and stimulus shape. Their methods are followed closely below with adaptations for the canonical chamber geometry, the LSM 880 imaging path, and the SDP810-based shear measurement system.
+Used as the primary protocol reference for chamber-based calcium imaging timing, dye loading, and stimulus shape. Their methods are followed closely below with adaptations for the canonical chamber geometry, the LSM 880 imaging path, and the SLF3S-1300F inline flow + Hagen-Poiseuille shear measurement system. Each chamber is also characterized once before deployment against an independent differential-pressure measurement (gas-side standpipes + DFRobot SEN0343 / All Sensors LWLP5000 ±500 Pa) to validate the SLF3S response; see "Per-chamber sensor validation" below.
 
 Supporting references:
 
@@ -37,6 +37,25 @@ For the locked canonical geometry (channel **24 mm wide × 50 mm long × 0.25 mm
 Reynolds number stays well below 100 across this range; flow remains laminar with entry length ≪ 1 mm, so Hagen-Poiseuille applies through almost all of the 50 mm channel.
 
 These flow rates supersede the v1 thesis values (which used a narrow 5 mm wide channel and reported flow-rate-to-shear conversions that appear to be off by ~4× regardless of channel width — the v1 dataset may need shear-axis relabeling if reused).
+
+## Per-chamber sensor validation (one-time, methods)
+
+Each chamber is characterized once before deployment by cross-checking the in-loop SLF3S-1300F flow reading against an independent differential-pressure measurement of the chamber. The validation rig is a separate bench instrument (parts in `hardware/bom.md` § "Validation rig"); it is not part of the deployed device. The cross-check produces a per-chamber calibration figure that is the methods-paper deliverable backing every downstream shear measurement.
+
+**Procedure (one session per chamber, ~30 min):**
+
+1. With the chamber on the bench (off the microscope), unplug the pressure-tap port plugs and connect temporary borosilicate or acrylic standpipes (4–6 mm ID × 50 mm tall) to the chamber's pressure-tap ports, one near the inlet and one near the outlet, separated by the documented tap-to-tap channel length.
+2. Between each standpipe and the validation pressure sensor, install a Millipore Millex-FG (PTFE) 0.22 µm hydrophobic membrane separator. The membrane keeps liquid in the standpipe and dry gas on the sensor side; the SEN0343 sees only gas above the liquid/gas interface.
+3. Wire the DFRobot SEN0343 (All Sensors LWLP5000 ±500 Pa differential pressure breakout, I²C) to a dedicated host microcontroller (Raspberry Pi Pico 2 or equivalent) on a breadboard, USB-connected to a bench laptop. Use a separate I²C bus from the deployed-device controller — the LWLP5000 lives at I²C address 0x00, which conflicts with general-call traffic on a shared bus.
+4. Prime the loop with degassed working medium. Verify both standpipes show stable 30 mm liquid columns; bleed bubbles from the riser tubing if needed.
+5. With pump off, verify the SEN0343 reads <±1 Pa (zero check) and the SLF3S reads <±0.05 mL/min of zero (zero check).
+6. Sweep flow rates with the Kamoer pump across the operating window — at minimum 8 setpoints covering 0.5–10 Pa shear (Q ≈ 8.3 to ~167 mL/min). Hold each setpoint ≥ 30 s. Log SLF3S flow rate (from the deployed controller) and SEN0343 differential pressure (from the validation host) simultaneously, time-aligned by matching wall-clock timestamps.
+7. Convert SEN0343 ΔP to ΔP-derived flow Q̂ using the Hagen-Poiseuille relation for the locked channel geometry and the working-medium viscosity (μ ≈ 0.9 mPa·s at 37 °C).
+8. Plot SLF3S Q (x-axis) against ΔP-derived Q̂ (y-axis). Fit a linear regression; report slope, intercept, and R². Slope = 1.00 ± 0.05 and intercept within ±0.5 mL/min are the acceptance criteria.
+9. Save the regression coefficients + raw setpoint log + scatter plot to the chamber's validation packet, archived alongside the chamber serial number. Reference this packet in every downstream experimental run's metadata.
+10. Disconnect the validation rig (standpipes + Millex-FG + SEN0343 + Pico). Plug the chamber's pressure-tap ports. The chamber is now ready for routine experiments — only the SLF3S reading is needed thereafter.
+
+The validation figure (item 8) is the figure that appears in the preprint methods, demonstrating that the in-loop SLF3S measurement reproduces the independent differential-pressure-derived flow within accuracy bounds, for this chamber. Future chamber builds repeat the procedure once before deployment.
 
 ## Cell culture protocol
 
@@ -101,20 +120,20 @@ Fluo-4 AM (intensity increases with Ca²⁺) is an acceptable alternative if a b
 
 ### Sterilization
 
-1. Autoclave the chamber, tubing, reservoir bottle, and (borosilicate) standpipes as one assembly.
-2. Connect SDP810 sensor and standpipe vent filters aseptically in a hood post-autoclave.
-3. Wipe sensor housings with 70 % ethanol; do not autoclave the SDP810.
+1. Autoclave the chamber, tubing, reservoir bottle, and IDEX fittings as one assembly per the chamber's autoclave cycle.
+2. Do **not** autoclave the controller or the SLF3S-1300F inline flow sensor. The SLF3S wetted path stays in the controller body and is cleaned in place between experiments per `cleaning_protocol.md` (water flush → Tergazyme → 70 % IPA → sterile rinse). Wipe sensor housings with 70 % ethanol; never expose them to steam, dry heat, or chlorinated solvents.
+3. Aseptically reconnect the autoclaved chamber to the controller-side loop (pump + SLF3S + dampeners) using sterile fittings in a hood.
 
 ### Loop priming
 
 1. Fill reservoir bottle with ~50 mL of pre-warmed phenol red free working medium.
-2. Connect reservoir, peristaltic pump, chamber inlet, chamber outlet, and return-to-reservoir tubing.
-3. Run pump at low rate (~5 mL/min) for 2–5 min to fill the loop, watching for bubbles.
-4. Tap and flick tubing to dislodge bubbles; if persistent, run pump backward briefly.
+2. Verify loop order: reservoir → peristaltic pump → SLF3S-1300F inline flow sensor → upstream pulsation dampener → chamber inlet → chamber outlet → downstream pulsation dampener → return-to-reservoir.
+3. Run pump at low rate (~5 mL/min) for 2–5 min to fill the loop, watching for bubbles. **Critical for the SLF3S**: persistent air slugs through the sensor can mechanically damage the thermal-bridge element over time. If bubbles persist at the SLF3S inlet, briefly increase pump rate to ~100 mL/min for 30 s to clear them.
+4. Tap and flick tubing upstream of the SLF3S to dislodge any trapped bubbles; if persistent, run pump backward briefly with fluid still in the line — never run the pump dry.
 5. Prime the inline pulsation dampeners (set syringe plunger position to fixed mid-stroke; verify hydrophobic membrane separator is wetted on liquid side and dry on gas side).
-6. Prime each standpipe: liquid level at 30 mm from bottom, gas pocket 20 mm above with the inline 0.22 µm hydrophobic membrane separator at the interface, top vent filter seated.
-7. With pump off, verify SDP810 reads <±1 Pa (zero check). If offset >5 Pa, re-prime standpipes.
-8. Verify dampener attenuation: run pump at 5 mL/min, view SDP810 spectrum, confirm pulsation fundamental amplitude is reduced ≥10× vs. dampener-bypass mode.
+6. With pump off, verify SLF3S reads within ±0.05 mL/min of zero after a 30 s settle (zero check). If offset exceeds ±0.1 mL/min, repeat the final sterile-rinse phase of `cleaning_protocol.md` — residual chemical in the channel is the most likely cause.
+7. Verify SLF3S setpoint accuracy: run pump at 16.7 mL/min (1 Pa shear setpoint per the Q-vs-τ table). SLF3S should read within ±5 % of commanded rate.
+8. Verify dampener attenuation: run pump at 5 mL/min, observe SLF3S fast-mode sample stream, confirm pump-fundamental amplitude is reduced ≥10× vs. dampener-bypass mode.
 
 ### Chamber assembly with cells
 
@@ -124,7 +143,7 @@ Fluo-4 AM (intensity increases with Ca²⁺) is an acceptable alternative if a b
 4. Lower top retainer, hand-tighten fasteners to spec, then torque per `rapid_direct_design_lock.md` channel-height hard-stop sequence. Do not over-torque — channel height is hard-stop limited, not torque limited.
 5. Mount chamber on the LSM 880 stage. Connect chamber inlet, outlet, and pressure-tap tubing to the loop.
 6. Run pump at very low rate (~1 mL/min, well below the 1.66 mL/min that produces 0.5 Pa shear — equivalent to ~0.3 Pa, 30 % of the experimental low-end threshold). This is "trickle prime" — clears any bubbles from the chamber path without applying meaningful shear.
-7. Verify no leaks at any fitting. Verify SDP810 ΔP reads ~100 Pa (consistent with trickle flow at our channel geometry).
+7. Verify no leaks at any fitting. Verify SLF3S reads ~5 mL/min (consistent with the trickle-prime command).
 
 ### Equilibration before stimulus
 
@@ -151,10 +170,10 @@ Adapted from Lu et al. 2012. Their "1 minute baseline + 9 minutes flow" structur
 
 1. Confirm 15–30 min static equilibration is complete and cells show stable baseline Fura Red signal.
 2. Configure LSM 880 acquisition: time series, 2 Hz frame rate, 600 frames total (5 min total acquisition).
-3. Enable Teensy data logging per `chamber_pressure_system.md` log columns. Confirm SDP810, encoder, and frame-marker channels are all writing.
+3. Enable Teensy data logging per `hardware/electronics/README.md` log columns. Confirm SLF3S flow + temperature, encoder, and frame-marker channels are all writing.
 4. Set target shear in the controller GUI: e.g., 1.0 Pa for the standard low-shear protocol, 2.0 Pa for the Lu et al. 2012 reference, 3.0 Pa for a higher-shear comparator.
 5. **t = 0 to 60 s: baseline.** Pump off. Record cells at rest. Note: in protocols that use a non-zero pre-flow for cell health, this is a "low pre-flow" baseline at the trickle-prime rate (~0.3 Pa); for an absolute-rest baseline, pump is fully off.
-6. **t = 60 s: stimulus onset.** Controller commands pump to ramp from 0 to target shear over <0.5 s (effectively a step, given dampener time constants). Closed-loop PID on SDP810 ΔP holds shear at setpoint within ±3 %.
+6. **t = 60 s: stimulus onset.** Controller commands pump to ramp from 0 to target shear over <0.5 s (effectively a step, given dampener time constants). Closed-loop PID on SLF3S flow rate holds shear at setpoint within ±3 % (the controller maps target shear → required Q via the Hagen-Poiseuille relation for the locked channel geometry, then closes the loop on flow).
 7. **t = 60 to 360 s: stimulus on.** Hold target shear for 5 minutes (300 s). Lu et al. 2012 used 9 min; reduce to 5 min for v2 unless biology requires longer to limit photobleaching. Frame trigger and ΔP sample stream both running continuously.
 8. **t = 360 s: stimulus off.** Controller commands pump back to 0 (or to trickle-prime rate).
 9. **t = 360 s onward: recovery.** Continue acquisition for 60–120 s post-stimulus to capture decay and recovery dynamics.
@@ -181,18 +200,18 @@ Sinusoidal shear waveform at 0.5–2 Hz to match the Lewis et al. 2017 in vivo l
    - Trough shear: 0.0 Pa (bias-mean − amplitude). Pump goes to zero but does not reverse.
    - Frequency: 0.5 Hz (Lewis low end) / 1 Hz (Lewis mid; Deepak standard) / 2 Hz (Lewis high end).
    - Waveform: sine.
-5. **t = 0 to 60 s: baseline.** Pump at trickle-prime rate (~0.3 Pa shear) or fully off. Acquire baseline frames and SDP810 ΔP samples.
-6. **t = 60 s: stimulus onset.** Controller initiates sinusoidal modulation: τ(t) = mean + amplitude · sin(2π · f · (t − 60)). PID holds the waveform tracking against the SDP810 ΔP feedback, accepting that response time of the closed loop limits achievable amplitude tracking above ~5 Hz. At our target frequencies (0.5–2 Hz), tracking should be tight.
+5. **t = 0 to 60 s: baseline.** Pump at trickle-prime rate (~0.3 Pa shear) or fully off. Acquire baseline frames and SLF3S flow samples.
+6. **t = 60 s: stimulus onset.** Controller initiates sinusoidal modulation: τ(t) = mean + amplitude · sin(2π · f · (t − 60)). The shear waveform is mapped to a flow waveform via the locked Hagen-Poiseuille geometry, and the PID closes on SLF3S flow rate. Response time of the closed loop limits achievable amplitude tracking above ~5 Hz. At our target frequencies (0.5–2 Hz), tracking should be tight.
 7. **t = 60 to 360 s: stimulus on.** 5 min of sinusoidal stimulus. ~150–600 oscillation cycles depending on frequency. Lu et al. 2012 used 9 min at 1 Hz; we shorten to 5 min for v2 to limit photobleaching.
 8. **t = 360 s: stimulus off.** Controller returns to baseline.
 9. **t = 360 s onward: recovery.** Continue acquisition for 60–120 s.
-10. End acquisition. Verify SDP810 ΔP log shows the expected sinusoid with mean and peak matching commanded values.
+10. End acquisition. Verify SLF3S flow log shows the expected sinusoid (in mL/min) with mean and peak matching the commanded values mapped from shear via the geometry.
 
 Variants:
 
 - Frequency sweep: run 0.5, 1.0, 2.0 Hz in sequence with 2 min recovery between, holding amplitude constant at 1 Pa. This directly tests the Lewis 2017 frequency-tuning hypothesis on osteocyte recruitment.
 - Amplitude sweep: hold frequency at 1 Hz, vary amplitude 0.25, 0.5, 1.0 Pa.
-- Pulsation-as-covariate analysis: with 4 Hz frame rate and SDP810 logging at >100 Hz, post-process the relationship between intrinsic peristaltic pulsation harmonics (logged from `pulsation_fundamental_amplitude_pa`) and calcium event timing. This is the novel methods-paper claim from `chamber_pressure_system.md`.
+- Pulsation-as-covariate analysis: with 4 Hz frame rate and SLF3S logging at fast-mode sample rate (~100–1000 Hz), post-process the relationship between intrinsic peristaltic pulsation harmonics (extracted from the SLF3S flow stream, phase-locked to the AS5600 pump-shaft encoder) and calcium event timing. This is a novel methods claim of the v2 chamber.
 
 ## Data analysis approach (post-acquisition)
 
@@ -215,10 +234,10 @@ Outline only; full analysis pipeline in `flow_chamber_app/`.
    - Recruitment as a function of shear magnitude (Lewis 2017 framework)
    - Cross-experiment averages with biological replicates
 8. Cross-channel sanity:
-   - Confirm SDP810 ΔP held setpoint within ±3 %
+   - Confirm SLF3S flow held the commanded setpoint within ±3 % (and that the shear value derived from it via the locked Hagen-Poiseuille geometry matches the commanded shear)
    - Confirm twin_quality_ratio stayed in [0.95, 1.05]
    - Confirm bubble_likely flag did not fire during the analysis window (or exclude windows where it did)
-   - Confirm calibration certificate from current experimental campaign is in metadata
+   - Confirm the per-chamber sensor-validation certificate (see "Per-chamber sensor validation" below) is in metadata
 
 ## Critical references for the methods paper
 
@@ -238,5 +257,5 @@ According to PubMed:
 - **Pre-flow during baseline**: zero (true rest, per the calcium-onset framing) vs. trickle (~0.3 Pa, prevents hypoxia and aligns with cell health). Recommended: zero for the headline calcium-onset experiment, with a separate validation experiment under trickle baseline to characterize any pre-flow conditioning effect.
 - **Imaging duration**: 5 min (this protocol) vs. 9 min (Lu et al. 2012) vs. 3 min (v1 thesis). 5 min is the v2 default, balancing photobleaching against capturing sustained calcium dynamics; revisit if first-experiment data shows responses persist past 5 min.
 - **Cell density at imaging**: 30–60 % confluent. v1 thesis ran at lower density per coverslip; Lu 2012 used micro-patterned networks (specific spacing). For v2, lock 30–60 % density unless adopting the micro-patterning approach as a separate methods extension.
-- **Closed-loop sinusoidal tracking bandwidth**: the SDP810 supports 0.5 ms response, but the dampener time constant + PID tuning sets practical tracking. Verify amplitude attenuation at 0.5/1/2 Hz during bring-up step 19 of `electronics_bringup_checklist.md`.
+- **Closed-loop sinusoidal tracking bandwidth**: the SLF3S-1300F supports fast-mode sampling up to ~1–2 kHz, but the dampener time constant + PID tuning sets practical tracking. Verify amplitude attenuation at 0.5/1/2 Hz during the bench bring-up sequence in `hardware/electronics/README.md`.
 - **Recovery duration post-stimulus**: 60 s vs. 120 s. 60 s is sufficient for first-peak and decay-τ measurements; 120 s for full network re-equilibration. Default 60 s, optional extended-recovery variant for network-dynamics experiments.

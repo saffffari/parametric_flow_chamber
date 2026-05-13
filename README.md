@@ -29,10 +29,12 @@ The chamber:
 The controller:
 
 - Teensy 4.1 + TMC2209 stepper driver running PlatformIO firmware.
-- Differential-pressure shear measurement via Sensirion SDP810 (gas-side standpipe stack).
-- Closed-loop control on shear, not flow.
+- Inline liquid flow measurement via Sensirion SLF3S-1300F (PEEK-wetted, in the controller body, reports flow rate + media temperature on the same I²C frame).
+- Closed-loop control on wall shear stress via direct flow + Hagen-Poiseuille geometry mapping.
 - Optically-isolated BNC trigger to/from the microscope.
 - microSD log of every sample, time-aligned with each LSM 880 frame.
+
+In-loop measurement is via direct liquid flow (SLF3S-1300F). The differential-pressure approach is described in the methods section as a one-time per-chamber validation step, not as a deployed-device sensor; see `docs/protocol.md` for the validation procedure and `hardware/electronics/README.md` for the architecture.
 
 The app:
 

@@ -14,7 +14,7 @@
 1. Ultrasonic clean machined parts in fresh deionized water, 5 min.
 2. Repeat in 70 % ethanol, 5 min.
 3. Air-dry under cleanroom wipe.
-4. Autoclave the chamber, cover plate, clamp, fittings, and tubing as one assembly per the chamber's autoclave cycle (typically 121 °C / 15 min / wet, or per local SOP). Do **not** autoclave the SDP810 sensor or any electronics.
+4. Autoclave the chamber, cover plate, clamp, and fittings as one assembly per the chamber's autoclave cycle (typically 121 °C / 15 min / wet, or per local SOP). Do **not** autoclave the controller, the SLF3S-1300F inline flow sensor, or any other electronics — the SLF3S wetted path is CIP-cleaned in place per `docs/cleaning_protocol.md`.
 
 ## Stage 2 — gasket and channel-height stack
 
@@ -28,10 +28,10 @@
 ## Stage 3 — fluidic loop
 
 1. Connect the IDEX 1/4-28 luer / flat-bottom fittings to the chamber's inlet and outlet bores.
-2. Route 1/16" OD FEP tubing from the chamber inlet → pulsation dampener (upstream) → peristaltic pump → reservoir; from the chamber outlet → pulsation dampener (downstream) → reservoir return.
-3. Connect the SDP810 differential-pressure sensor to the standpipe stack (gas-side). Reference the standpipe geometry in `hardware/electronics/README.md` § "Pressure tap and standpipe implementation".
-4. Confirm the inline 0.22 µm hydrophobic membrane separators (Millex-FG) are installed between liquid and gas pockets. These are the load-bearing sterile barrier.
-5. Connect both standpipes to a thermally-coupled mounting bracket so any temperature drift is common-mode and rejects in the differential measurement.
+2. Route 1/16" OD FEP tubing from the reservoir → peristaltic pump → SLF3S-1300F inline flow sensor → upstream pulsation dampener → chamber inlet; from the chamber outlet → downstream pulsation dampener → reservoir return.
+3. The SLF3S-1300F sits inside the controller body, downstream of the pump and upstream of the chamber. Its PEEK-wetted channel is part of the sterile loop but never autoclaved; it is CIP-cleaned in place after each experiment per `docs/cleaning_protocol.md`.
+4. Verify all luer / barb engagements are seated; pinhole leaks at the SLF3S barbs introduce air slugs that damage the sensor over time.
+5. If running a per-chamber validation pass (one-time, methods-only), connect the temporary standpipes + Millex-FG hydrophobic 0.22 µm separators + DFRobot SEN0343 differential pressure breakout to the chamber's pressure-tap ports. The standpipe geometry is in `hardware/electronics/README.md` § "Validation methodology". After validation, plug the pressure-tap ports and remove the standpipe stack for routine cell-experiment runs.
 
 ## Stage 4 — controller wiring
 
@@ -40,8 +40,8 @@ See `hardware/electronics/README.md` § "Bench Bring-Up Checklist" for the bench
 ## Stage 5 — first wet-loop test (off-microscope)
 
 1. Fill reservoir with phenol-red-free α-MEM (or DI water for the very first leak test).
-2. Run pump at low flow (~5 mL/min) for 2–5 min. Watch for bubbles in the chamber, leaks at fittings, and SDP810 zero stability with pump off.
-3. Verify dampener attenuation: SDP810 spectrum should show pump-fundamental amplitude reduced ≥ 10× vs dampener-bypass mode.
+2. Run pump at low flow (~5 mL/min) for 2–5 min. Watch for bubbles in the chamber, leaks at fittings, and SLF3S-1300F zero stability with pump off (sensor should drift to within ±0.05 mL/min of zero within 30 s of pump-off — see `docs/cleaning_protocol.md` § "Pre-experiment prime").
+3. Verify dampener attenuation: with pump on at a fixed setpoint, the SLF3S sample stream at fast-mode rate should show pump-fundamental amplitude reduced ≥ 10× vs dampener-bypass mode.
 4. Verify gravimetric flow calibration at 5 setpoints with a balance per `hardware/electronics/README.md` § "Calibration protocol".
 5. Visually inspect every fitting, the chamber-to-cover-glass interface, and the catch tray for drips during the 30-minute water-loop test.
 
